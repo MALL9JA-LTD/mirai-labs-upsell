@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIRAI LABS — Inventory</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <div class="topbar">
+    <button id="hamburger">☰</button>
+    <span class="brand-name">MIRAI LABS</span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">MIRAI LABS</div>
+      <div class="brand-sub">Upsell Tracker</div>
+    </div>
+    <nav id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user-info">
+        <span id="sidebar-user"></span>
+        <span id="sidebar-role"></span>
+      </div>
+      <button id="btn-logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Inventory</div>
+        <div class="page-subtitle">Manage products and dispatch stock to delivery staff</div>
+      </div>
+      <button class="btn btn-primary" id="btn-add-product">+ Add Product</button>
+    </div>
+
+    <!-- Products Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🏭 Products</div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>SKU</th>
+              <th>Total Stock</th>
+              <th>Dispatched</th>
+              <th>Delivered</th>
+              <th>Available</th>
+              <th>Cost Price</th>
+              <th>Selling Price</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-body">
+            <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dispatch Section -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚚 Dispatch Inventory</div>
+      </div>
+      <form id="dispatch-form" style="max-width:500px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product *</label>
+            <select id="dispatch-product">
+              <option value="">— Select product —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Delivery Staff *</label>
+            <select id="dispatch-staff">
+              <option value="">— Select staff —</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" id="dispatch-qty" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <input type="text" id="dispatch-notes" placeholder="Optional notes" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="dispatch-btn">Dispatch</button>
+      </form>
+    </div>
+
+    <!-- Dispatch History -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 Dispatch History</div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Staff</th>
+              <th>Quantity</th>
+              <th>Notes</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="dispatch-history-body">
+            <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add/Edit Product Modal -->
+  <div class="modal-overlay" id="modal-product">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="product-modal-title">Add Product</div>
+        <button class="modal-close" onclick="closeModal('modal-product')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="product-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name *</label>
+            <input type="text" id="p-name" placeholder="e.g. Mirai Slim Pack" />
+          </div>
+          <div class="form-group">
+            <label>SKU</label>
+            <input type="text" id="p-sku" placeholder="ML-001" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Total Stock</label>
+            <input type="number" id="p-stock" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Dispatched Stock</label>
+            <input type="number" id="p-dispatched" min="0" value="0" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cost Price (₦)</label>
+            <input type="number" id="p-cost" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Selling Price (₦)</label>
+            <input type="number" id="p-sell" min="0" value="0" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancel</button>
+        <button class="btn btn-primary" id="save-product-btn">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/inventory.js"></script>
+</body>
+</html>

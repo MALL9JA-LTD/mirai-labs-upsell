@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIRAI LABS — Delivery Portal</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    body { background: var(--bg); }
+    .portal-wrapper { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
+    .portal-hero {
+      background: linear-gradient(135deg, var(--sidebar-bg) 0%, #16213e 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .portal-hero .brand { font-size: 20px; font-weight: 800; letter-spacing: 1.5px; color: var(--primary); }
+    .portal-hero .subtitle { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+    .portal-hero .agent-info { text-align: right; }
+    .portal-hero .agent-name { font-size: 15px; font-weight: 600; }
+    .portal-hero .agent-role { font-size: 12px; opacity: 0.6; }
+  </style>
+</head>
+<body>
+
+  <div class="portal-wrapper">
+    <div class="portal-hero">
+      <div>
+        <div class="brand">MIRAI LABS</div>
+        <div class="subtitle">Delivery Staff Portal</div>
+      </div>
+      <div class="agent-info">
+        <div class="agent-name" id="portal-agent-name">—</div>
+        <div class="agent-role">Delivery Staff</div>
+        <button id="portal-logout" class="btn btn-secondary btn-sm" style="margin-top:8px;">Logout</button>
+      </div>
+    </div>
+
+    <!-- Status Summary -->
+    <div class="stats-grid" id="portal-stats">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-pending">—</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-delivered">—</div>
+        <div class="stat-label">Delivered</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-failed">—</div>
+        <div class="stat-label">Failed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Assigned</div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-status="">All</button>
+      <button class="tab-btn" data-status="pending">Pending</button>
+      <button class="tab-btn" data-status="delivered">Delivered</button>
+      <button class="tab-btn" data-status="failed">Failed</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">My Deliveries</div>
+        <div id="portal-last-updated" style="font-size:12px;color:var(--text-muted);"></div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>State</th>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="portal-deliveries-body">
+            <tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script>
+    let allDeliveries = [];
+    let activeStatus  = '';
+
+    (async () => {
+      const { data: { session } } = await window._supabase.auth.getSession();
+      if (!session) { window.location.href = '/'; return; }
+
+      const { data: profile } = await window._supabase
+        .from('profiles').select('*').eq('id', session.user.id).single();
+
+      document.getElementById('portal-agent-name').textContent = profile?.full_name || session.user.email;
+
+      document.getElementById('portal-logout').addEventListener('click', async () => {
+        await window._supabase.auth.signOut();
+        window.location.href = '/';
+      });
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeStatus = btn.dataset.status;
+          renderTable();
+        });
+      });
+
+      await loadDeliveries(session.user.id);
+    })();
+
+    async function loadDeliveries(staffId) {
+      document.getElementById('portal-deliveries-body').innerHTML =
+        `<tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr>`;
+
+      try {
+        let from = 0;
+        const PAGE = 1000;
+        allDeliveries = [];
+
+        while (true) {
+          const { data, error } = await window._supabase
+            .from('deliveries')
+            .select(`id, status, quantity, created_at,
+              customers(full_name, phone, state),
+              products(name)`)
+            .eq('delivery_staff_id', staffId)
+            .order('id')
+            .range(from, from + PAGE - 1);
+
+          if (error) throw error;
+          allDeliveries = allDeliveries.concat(data || []);
+          if (!data || data.length < PAGE) break;
+          from += PAGE;
+        }
+
+        // Stats
+        const pending   = allDeliveries.filter(d => d.status === 'pending').length;
+        const delivered = allDeliveries.filter(d => d.status === 'delivered').length;
+        const failed    = allDeliveries.filter(d => d.status === 'failed' || d.status === 'failed_delivery').length;
+        document.getElementById('stat-pending').textContent   = pending;
+        document.getElementById('stat-delivered').textContent = delivered;
+        document.getElementById('stat-failed').textContent    = failed;
+        document.getElementById('stat-total').textContent     = allDeliveries.length;
+
+        document.getElementById('portal-last-updated').textContent =
+          'Last updated: ' + new Date().toLocaleTimeString('en-GB');
+
+        renderTable();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('portal-deliveries-body').innerHTML =
+          `<tr><td colspan="7" class="empty-state">Failed to load deliveries</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('portal-deliveries-body');
+      const rows = allDeliveries.filter(d => {
+        if (!activeStatus) return true;
+        if (activeStatus === 'failed') return d.status === 'failed' || d.status === 'failed_delivery';
+        return d.status === activeStatus;
+      });
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><span class="empty-icon">📦</span>No deliveries found</td></tr>`;
+        return;
+      }
+
+      const STATUS_BADGES = {
+        pending:   '<span class="badge badge-info">Pending</span>',
+        delivered: '<span class="badge badge-success">Delivered</span>',
+        failed:    '<span class="badge badge-danger">Failed</span>',
+        failed_delivery: '<span class="badge badge-danger">Failed</span>',
+        returned:  '<span class="badge badge-secondary">Returned</span>',
+      };
+
+      tbody.innerHTML = rows.map(d => {
+        const isPending = d.status === 'pending';
+        const actions = isPending ? `
+          <button class="btn btn-success btn-sm" onclick="markDelivery('${d.id}','delivered')">✓ Delivered</button>
+          <button class="btn btn-danger btn-sm" style="margin-top:4px;" onclick="markDelivery('${d.id}','failed')">✗ Failed</button>
+        ` : '—';
+
+        return `<tr>
+          <td><strong>${d.customers?.full_name || '—'}</strong></td>
+          <td>${d.customers?.phone || '—'}</td>
+          <td>${d.customers?.state || '—'}</td>
+          <td>${d.products?.name || '—'}</td>
+          <td>${d.quantity || 1}</td>
+          <td>${STATUS_BADGES[d.status] || d.status}</td>
+          <td style="min-width:120px;">${actions}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function markDelivery(id, status) {
+      const label = status === 'delivered' ? 'Mark as Delivered' : 'Mark as Failed';
+      if (!confirm(`${label}?`)) return;
+
+      const updateData = { status };
+      if (status === 'delivered') updateData.delivery_date = new Date().toISOString();
+
+      const { data, error } = await window._supabase
+        .from('deliveries')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        alert('Error: ' + error.message);
+        return;
+      }
+      if (!data || data.length === 0) {
+        alert('Update failed — you may not have permission to update this record.');
+        return;
+      }
+
+      const idx = allDeliveries.findIndex(d => d.id === id);
+      if (idx !== -1) allDeliveries[idx] = { ...allDeliveries[idx], ...data[0] };
+
+      // Refresh stats
+      const pending   = allDeliveries.filter(d => d.status === 'pending').length;
+      const delivered = allDeliveries.filter(d => d.status === 'delivered').length;
+      const failed    = allDeliveries.filter(d => d.status === 'failed' || d.status === 'failed_delivery').length;
+      document.getElementById('stat-pending').textContent   = pending;
+      document.getElementById('stat-delivered').textContent = delivered;
+      document.getElementById('stat-failed').textContent    = failed;
+
+      renderTable();
+    }
+  </script>
+</body>
+</html>

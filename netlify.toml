@@ -1,0 +1,49 @@
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/customers"
+  to = "/customers.html"
+  status = 200
+
+[[redirects]]
+  from = "/calls"
+  to = "/calls.html"
+  status = 200
+
+[[redirects]]
+  from = "/deliveries"
+  to = "/deliveries.html"
+  status = 200
+
+[[redirects]]
+  from = "/inventory"
+  to = "/inventory.html"
+  status = 200
+
+[[redirects]]
+  from = "/reports"
+  to = "/reports.html"
+  status = 200
+
+[[redirects]]
+  from = "/agents"
+  to = "/agents.html"
+  status = 200
+
+[[redirects]]
+  from = "/website-orders"
+  to = "/website-orders.html"
+  status = 200
+
+[[redirects]]
+  from = "/reset-password"
+  to = "/reset-password.html"
+  status = 200
+
+[[redirects]]
+  from = "/agent-portal"
+  to = "/agent-portal.html"
+  status = 200

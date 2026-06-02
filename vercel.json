@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    { "source": "/dashboard",     "destination": "/dashboard.html" },
+    { "source": "/customers",     "destination": "/customers.html" },
+    { "source": "/calls",         "destination": "/calls.html" },
+    { "source": "/deliveries",    "destination": "/deliveries.html" },
+    { "source": "/inventory",     "destination": "/inventory.html" },
+    { "source": "/reports",       "destination": "/reports.html" },
+    { "source": "/agents",        "destination": "/agents.html" },
+    { "source": "/website-orders","destination": "/website-orders.html" },
+    { "source": "/reset-password","destination": "/reset-password.html" },
+    { "source": "/agent-portal",  "destination": "/agent-portal.html" }
+  ]
+}
