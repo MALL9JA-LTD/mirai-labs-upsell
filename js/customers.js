@@ -356,19 +356,24 @@ async function autoDistribute() {
   const btn = document.getElementById('confirm-distribute-btn');
   btn.disabled=true; btn.textContent='Distributing…';
 
-  // Build the full upsert payload in memory (round-robin assignment)
-  let idx = 0;
-  const rows = unassigned.map(c => ({ id: c.id, assigned_to: agentIds[idx++ % agentIds.length] }));
+  // Round-robin: group customer IDs by which agent they'll go to
+  const groups = {}; // agentId -> [customerId, ...]
+  agentIds.forEach(id => { groups[id] = []; });
+  unassigned.forEach((c, i) => { groups[agentIds[i % agentIds.length]].push(c.id); });
 
-  // Batch upsert in chunks of 500 to stay within Supabase body limits
+  // One UPDATE per agent, chunked at 500 IDs per call
   const CHUNK = 500;
   let hasError = false;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    const chunk = rows.slice(i, i + CHUNK);
-    const { error } = await window._supabase
-      .from('customers')
-      .upsert(chunk, { onConflict: 'id' });
-    if (error) { showToast('Distribution error: ' + error.message, 'error'); hasError = true; break; }
+  for (const agentId of agentIds) {
+    const ids = groups[agentId];
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const { error } = await window._supabase
+        .from('customers')
+        .update({ assigned_to: agentId })
+        .in('id', ids.slice(i, i + CHUNK));
+      if (error) { showToast('Distribution error: ' + error.message, 'error'); hasError = true; break; }
+    }
+    if (hasError) break;
   }
 
   btn.disabled=false; btn.textContent='Distribute';
