@@ -193,7 +193,8 @@
       btn.disabled = true;
       btn.textContent = 'Creating account…';
 
-      const { error } = await window._supabase.auth.signUp({
+
+      const { data, error } = await window._supabase.auth.signUp({
         email,
         password: pass,
         options: {
@@ -209,6 +210,14 @@
         return;
       }
 
+      // If email confirmation is disabled, session is returned immediately
+      if (data?.session) {
+        showStep('step-success');
+        setTimeout(() => window.location.href = '/dashboard', 2000);
+        return;
+      }
+
+      // Otherwise fall back to OTP flow
       pendingEmail = email;
       document.getElementById('otp-email-display').textContent = email;
       showStep('step-otp');
