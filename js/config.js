@@ -2,7 +2,7 @@ const BRANDS = [
   {
     key: 'mirailabs',
     name: 'MIRAI LABS',
-    hostnames: ['YOUR_DOMAIN_HERE', 'localhost', '127.0.0.1'],
+    hostnames: ['mirai-labs-upsellcd.vercel.app', 'localhost', '127.0.0.1'],
     SUPABASE_URL: 'https://nfalzvmxntybjeucgghw.supabase.co',
     SUPABASE_ANON_KEY: 'sb_publishable_d67ACOJDswrU4o10IBpmkg_N422HBZk',
     primary: '#6C63FF',
