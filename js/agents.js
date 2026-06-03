@@ -14,16 +14,15 @@ function toggleMenu(btn, menuId) {
   const wasOpen = menu.classList.contains('open');
   closeAllMenus();
   if (!wasOpen) {
+    // Show first so offsetHeight is real
     menu.classList.add('open');
-    // Position near the button
     const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    if (spaceBelow < 200) {
-      menu.style.top = (rect.top - menu.offsetHeight - 4 + window.scrollY) + 'px';
-    } else {
-      menu.style.top = (rect.bottom + 4 + window.scrollY) + 'px';
-    }
-    menu.style.left = Math.min(rect.left, window.innerWidth - 190) + 'px';
+    // position:fixed — no scrollY adjustment needed
+    const top = (window.innerHeight - rect.bottom < 220)
+      ? rect.top - menu.offsetHeight - 4
+      : rect.bottom + 4;
+    menu.style.top  = Math.max(4, top) + 'px';
+    menu.style.left = Math.min(rect.left, window.innerWidth - 194) + 'px';
   }
 }
 
@@ -43,13 +42,14 @@ async function loadAll() {
   document.getElementById('dstaff-body').innerHTML = '<tr><td colspan="5" class="empty-state"><em>Loading…</em></td></tr>';
 
   const [profiles, dstaff, callLogs, deliveries, customers] = await Promise.all([
-    window._supabase.from('profiles').select('id,full_name,email,role,is_active,created_at').order('created_at',{ascending:false}),
+    window._supabase.from('profiles').select('*').order('created_at',{ascending:false}),
     window._supabase.from('delivery_staff').select('id,name,phone,active,created_at').order('created_at',{ascending:false}),
     fetchAll((from,to) => window._supabase.from('call_logs').select('id,agent_id,outcome').order('id').range(from,to)),
     fetchAll((from,to) => window._supabase.from('deliveries').select('id,agent_id,status,sale_price').order('id').range(from,to)),
     fetchAll((from,to) => window._supabase.from('customers').select('id,assigned_to').order('id').range(from,to)),
   ]);
 
+  if (profiles.error) { showToast('Failed to load profiles: ' + profiles.error.message, 'error'); }
   allProfiles = profiles.data || [];
   allDeliveryStaff = dstaff.data || [];
   allCallLogs = callLogs;
