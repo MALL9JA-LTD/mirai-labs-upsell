@@ -29,7 +29,7 @@ async function loadAll() {
   const queries = [
     fetchAll((from, to) => {
       let q = window._supabase.from('customers')
-        .select('id,full_name,phone,state,order_date,original_product,assigned_to,created_at,from_website,profiles!customers_assigned_to_fkey(id,full_name)')
+        .select('id,full_name,phone,state,order_date,original_product,assigned_to,created_at,profiles!customers_assigned_to_fkey(id,full_name)')
         .order('id').range(from, to);
       if (!isAdmin) q = q.eq('assigned_to', window._profile.id);
       return q;
@@ -156,15 +156,13 @@ function applyFilters() {
   const tier = document.getElementById('filter-tier').value;
   const status = document.getElementById('filter-status').value;
   const agent = document.getElementById('filter-agent').value;
-  const website = document.getElementById('filter-website').checked;
 
   filteredCustomers = allCustomers.filter(c => {
     const matchSearch = !search || (c.full_name||'').toLowerCase().includes(search) || (c.phone||'').includes(search);
     const matchTier = !tier || calcTier(c.order_date) === tier;
     const matchStatus = !status || getCampaignStatus(c) === status;
     const matchAgent = !agent || c.assigned_to === agent;
-    const matchWebsite = website || !c.from_website;
-    return matchSearch && matchTier && matchStatus && matchAgent && matchWebsite;
+    return matchSearch && matchTier && matchStatus && matchAgent;
   });
 
   currentPage = 1;
