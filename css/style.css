@@ -1041,13 +1041,14 @@ tbody tr:hover td { background: rgba(201,146,42,0.04); }
 
 .item-row {
   display: grid;
-  grid-template-columns: 1fr 80px 110px 32px;
+  grid-template-columns: 2fr 70px 140px 28px;
   gap: 8px;
-  align-items: end;
-  margin-bottom: 8px;
+  align-items: start;
+  margin-bottom: 10px;
 }
 
 .item-row .form-group { margin-bottom: 0; }
+.item-unit-hint { font-size: 10px; color: var(--ml-gold-dim); margin-top: 3px; min-height: 14px; }
 
 .running-total,
 .order-total {

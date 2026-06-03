@@ -331,7 +331,7 @@ function onOutcomeChange() {
 function addItemRow() {
   const container = document.getElementById('items-container');
   const idx = itemRows.length;
-  itemRows.push({ product_id: '', qty: 1, sale_price: 0 });
+  itemRows.push({ product_id: '', qty: 1, unit_price: 0, sale_price: 0 });
   const productOptions = allProducts.map(p =>
     `<option value="${p.id}" data-price="${p.selling_price || 0}">${p.name}</option>`
   ).join('');
@@ -339,26 +339,47 @@ function addItemRow() {
   row.className = 'item-row';
   row.dataset.idx = idx;
   row.innerHTML = `
-    <div class="form-group" style="margin:0;">
+    <div class="form-group" style="margin:0;flex:2;">
       <label style="font-size:10px;">Product</label>
-      <select class="item-product" data-idx="${idx}"><option value="">— Select —</option>${productOptions}</select>
+      <select class="item-product" data-idx="${idx}">
+        <option value="">— Select product —</option>${productOptions}
+      </select>
+      <div class="item-unit-hint" style="font-size:10px;color:var(--ml-muted);margin-top:3px;min-height:14px;"></div>
     </div>
-    <div class="form-group" style="margin:0;">
+    <div class="form-group" style="margin:0;width:70px;">
       <label style="font-size:10px;">Qty</label>
-      <input type="number" class="item-qty" data-idx="${idx}" value="1" min="1" />
+      <input type="number" class="item-qty" data-idx="${idx}" value="1" min="1" style="text-align:center;" />
     </div>
-    <div class="form-group" style="margin:0;">
-      <label style="font-size:10px;">Sale Price (₦)</label>
+    <div class="form-group" style="margin:0;width:130px;">
+      <label style="font-size:10px;">Total Price (₦)</label>
       <input type="number" class="item-price" data-idx="${idx}" value="0" min="0" />
     </div>
-    <button type="button" class="item-remove-btn" data-idx="${idx}">✕</button>`;
-  row.querySelector('.item-product').addEventListener('change', e => {
-    const price = e.target.selectedOptions[0]?.dataset?.price || 0;
-    row.querySelector('.item-price').value = price;
+    <button type="button" class="item-remove-btn" data-idx="${idx}" style="margin-top:18px;">✕</button>`;
+
+  function updateRowPrice() {
+    const unitPrice = Number(row.dataset.unitPrice || 0);
+    const qty = Number(row.querySelector('.item-qty').value) || 1;
+    if (unitPrice > 0) {
+      row.querySelector('.item-price').value = unitPrice * qty;
+    }
     syncItem(idx); recalcTotal();
+  }
+
+  row.querySelector('.item-product').addEventListener('change', e => {
+    const opt = e.target.selectedOptions[0];
+    const unitPrice = Number(opt?.dataset?.price || 0);
+    row.dataset.unitPrice = unitPrice;
+    // Show unit price hint
+    const hint = row.querySelector('.item-unit-hint');
+    hint.textContent = unitPrice > 0 ? `Unit price: ${fmtMoney(unitPrice)}` : '';
+    updateRowPrice();
   });
-  row.querySelector('.item-qty').addEventListener('input', () => { syncItem(idx); recalcTotal(); });
+
+  row.querySelector('.item-qty').addEventListener('input', updateRowPrice);
+
+  // Allow manual price override without resetting on blur
   row.querySelector('.item-price').addEventListener('input', () => { syncItem(idx); recalcTotal(); });
+
   row.querySelector('.item-remove-btn').addEventListener('click', () => { row.remove(); itemRows[idx] = null; recalcTotal(); });
   container.appendChild(row);
   recalcTotal();
@@ -370,12 +391,14 @@ function syncItem(idx) {
   itemRows[idx] = {
     product_id: row.querySelector('.item-product').value,
     qty: Number(row.querySelector('.item-qty').value) || 1,
+    unit_price: Number(row.dataset.unitPrice || 0),
     sale_price: Number(row.querySelector('.item-price').value) || 0,
   };
 }
 
 function recalcTotal() {
-  const total = itemRows.filter(Boolean).reduce((s, r) => s + r.sale_price * r.qty, 0);
+  // sale_price is now the LINE total (unit_price × qty), not unit price
+  const total = itemRows.filter(Boolean).reduce((s, r) => s + (r.sale_price || 0), 0);
   document.getElementById('running-total').textContent = 'Total: ' + fmtMoney(total);
 }
 
@@ -406,7 +429,7 @@ async function submitCall() {
       const deliveryFee = Number(document.getElementById('delivery-fee').value) || 0;
       const waybillFee  = Number(document.getElementById('waybill-fee').value) || 0;
       const staffId     = document.getElementById('delivery-staff').value || null;
-      const totalSale   = validItems.reduce((s, r) => s + r.sale_price * r.qty, 0);
+      const totalSale   = validItems.reduce((s, r) => s + (r.sale_price || 0), 0);
       const firstP      = allProducts.find(p => p.id === validItems[0].product_id);
       const delivPayload = {
         customer_id: customerId, agent_id: agentId, logged_by: agentId,
