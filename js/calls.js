@@ -41,7 +41,7 @@ async function loadAll() {
       window._supabase.from('deliveries')
         .select('id,customer_id,status').order('id').range(from, to)
     ),
-    window._supabase.from('products').select('id,name,selling_price,cost_price').order('name'),
+    window._supabase.from('products').select('*').order('name'),
     window._supabase.from('delivery_staff').select('id,name,active').eq('active', true).order('name'),
   ];
 
@@ -332,21 +332,28 @@ function addItemRow() {
   const container = document.getElementById('items-container');
   const idx = itemRows.length;
   itemRows.push({ product_id: '', qty: 1, unit_price: 0, sale_price: 0 });
+
   const productOptions = allProducts.map(p =>
-    `<option value="${p.id}" data-price="${p.selling_price || 0}">${p.name}</option>`
+    `<option value="${p.id}">${p.name}</option>`
   ).join('');
+
   const row = document.createElement('div');
   row.className = 'item-row';
   row.dataset.idx = idx;
   row.innerHTML = `
-    <div class="form-group" style="margin:0;flex:2;">
+    <div class="form-group" style="margin:0;">
       <label style="font-size:10px;">Product</label>
       <select class="item-product" data-idx="${idx}">
         <option value="">— Select product —</option>${productOptions}
       </select>
-      <div class="item-unit-hint" style="font-size:10px;color:var(--ml-muted);margin-top:3px;min-height:14px;"></div>
     </div>
-    <div class="form-group" style="margin:0;width:70px;">
+    <div class="form-group" style="margin:0;">
+      <label style="font-size:10px;">Pricing Offer</label>
+      <select class="item-tier" data-idx="${idx}" disabled>
+        <option value="">— Pick product first —</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:68px;">
       <label style="font-size:10px;">Qty</label>
       <input type="number" class="item-qty" data-idx="${idx}" value="1" min="1" style="text-align:center;" />
     </div>
@@ -356,30 +363,47 @@ function addItemRow() {
     </div>
     <button type="button" class="item-remove-btn" data-idx="${idx}" style="margin-top:18px;">✕</button>`;
 
-  function updateRowPrice() {
-    const unitPrice = Number(row.dataset.unitPrice || 0);
-    const qty = Number(row.querySelector('.item-qty').value) || 1;
-    if (unitPrice > 0) {
-      row.querySelector('.item-price').value = unitPrice * qty;
+  function recalcRowPrice() {
+    const tierSel = row.querySelector('.item-tier');
+    const selectedTier = tierSel.options[tierSel.selectedIndex];
+    const tierPrice = Number(selectedTier?.dataset?.tierPrice || 0);
+    const tierQty   = Number(selectedTier?.dataset?.tierQty || 1);
+    const multiplier = Number(row.querySelector('.item-qty').value) || 1;
+    if (tierPrice > 0) {
+      row.querySelector('.item-price').value = tierPrice * multiplier;
+      // Show real unit count
+      row.dataset.realQty = tierQty * multiplier;
     }
     syncItem(idx); recalcTotal();
   }
 
   row.querySelector('.item-product').addEventListener('change', e => {
-    const opt = e.target.selectedOptions[0];
-    const unitPrice = Number(opt?.dataset?.price || 0);
-    row.dataset.unitPrice = unitPrice;
-    // Show unit price hint
-    const hint = row.querySelector('.item-unit-hint');
-    hint.textContent = unitPrice > 0 ? `Unit price: ${fmtMoney(unitPrice)}` : '';
-    updateRowPrice();
+    const productId = e.target.value;
+    const product = allProducts.find(p => p.id === productId);
+    const tierSel = row.querySelector('.item-tier');
+    if (!product) { tierSel.innerHTML = '<option value="">— Pick product first —</option>'; tierSel.disabled = true; return; }
+
+    // Build tier options: always include Single + any configured offers
+    const tiers = [
+      { label: `Single — ${fmtMoney(product.selling_price)}`, qty: 1, price: product.selling_price }
+    ];
+    [2,3,4].forEach(n => {
+      const label = product[`offer${n}_label`];
+      const qty   = product[`offer${n}_qty`] || n;
+      const price = product[`offer${n}_price`] || 0;
+      if (label && price > 0) tiers.push({ label: `${label} — ${fmtMoney(price)}`, qty, price });
+    });
+
+    tierSel.innerHTML = tiers.map((t, i) =>
+      `<option value="${i}" data-tier-price="${t.price}" data-tier-qty="${t.qty}">${t.label}</option>`
+    ).join('');
+    tierSel.disabled = false;
+    recalcRowPrice();
   });
 
-  row.querySelector('.item-qty').addEventListener('input', updateRowPrice);
-
-  // Allow manual price override without resetting on blur
+  row.querySelector('.item-tier').addEventListener('change', recalcRowPrice);
+  row.querySelector('.item-qty').addEventListener('input', recalcRowPrice);
   row.querySelector('.item-price').addEventListener('input', () => { syncItem(idx); recalcTotal(); });
-
   row.querySelector('.item-remove-btn').addEventListener('click', () => { row.remove(); itemRows[idx] = null; recalcTotal(); });
   container.appendChild(row);
   recalcTotal();

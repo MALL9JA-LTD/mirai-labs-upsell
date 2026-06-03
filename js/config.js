@@ -25,6 +25,7 @@ const OUTCOMES = [
   { value: 'callback_requested', label: 'Callback requested' },
   { value: 'interested',         label: 'Interested' },
   { value: 'ordered',            label: 'Ordered' },
+  { value: 'delivered',          label: 'Delivered' },
   { value: 'declined',           label: 'Declined' },
   { value: 'angry',              label: 'Angry / abusive' },
   { value: 'wrong_number',       label: 'Wrong number' },

@@ -14,7 +14,7 @@ let allProducts = [], allStaff = [], allAgentInventory = [], allDispatches = [],
 async function loadAll() {
   try {
     const [products, staff, agentInv, dispatches, deliveries] = await Promise.all([
-      window._supabase.from('products').select('id,name,sku,total_stock,dispatched_stock,cost_price,selling_price').order('name'),
+      window._supabase.from('products').select('*').order('name'),
       window._supabase.from('delivery_staff').select('id,name,active').order('name'),
       window._supabase.from('agent_inventory').select('id,staff_id,product_id,sent,delivered').order('id'),
       window._supabase.from('inventory_dispatches')
@@ -85,6 +85,13 @@ function renderProducts() {
   }
   grid.innerHTML = allProducts.map(p => {
     const stats = getProductStats(p);
+    const offers = getProductOffers(p);
+    const offerHtml = offers.length > 0 ? `
+      <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ml-border);">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--ml-gold-dim);margin-bottom:6px;">Pricing Offers</div>
+        <div class="product-card-row"><span class="label">Single</span><span class="value">${fmtMoney(p.selling_price)}</span></div>
+        ${offers.map(o => `<div class="product-card-row"><span class="label" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${o.label}">${o.label}</span><span class="value">${fmtMoney(o.price)}</span></div>`).join('')}
+      </div>` : '';
     return `<div class="product-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
         <div>
@@ -92,29 +99,15 @@ function renderProducts() {
           <div style="font-size:11px;color:var(--ml-muted);">${p.sku || ''}</div>
         </div>
       </div>
-      <div class="product-card-row">
-        <span class="label">Selling Price</span>
-        <span class="value">${fmtMoney(p.selling_price)}</span>
-      </div>
-      <div class="product-card-row">
-        <span class="label">Cost per Unit</span>
-        <span class="value">${fmtMoney(p.cost_price)}</span>
-      </div>
-      <div class="product-card-row">
-        <span class="label">Units Ordered</span>
-        <span class="value">${stats.unitsOrdered}</span>
-      </div>
-      <div class="product-card-row">
-        <span class="label">Units Delivered</span>
-        <span class="value">${stats.unitsDelivered}</span>
-      </div>
-      <div class="product-card-row">
-        <span class="label">Pending Delivery</span>
-        <span class="value">${stats.pending}</span>
-      </div>
-      <div class="product-card-row">
-        <span class="label">Revenue</span>
-        <span class="value gold">${fmtMoney(stats.revenue)}</span>
+      <div class="product-card-row"><span class="label">Single Price</span><span class="value">${fmtMoney(p.selling_price)}</span></div>
+      <div class="product-card-row"><span class="label">Cost per Unit</span><span class="value">${fmtMoney(p.cost_price)}</span></div>
+      ${offerHtml}
+      <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--ml-border);">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.15em;color:var(--ml-gold-dim);margin-bottom:6px;">Stock & Sales</div>
+        <div class="product-card-row"><span class="label">Units Ordered</span><span class="value">${stats.unitsOrdered}</span></div>
+        <div class="product-card-row"><span class="label">Units Delivered</span><span class="value">${stats.unitsDelivered}</span></div>
+        <div class="product-card-row"><span class="label">Pending</span><span class="value">${stats.pending}</span></div>
+        <div class="product-card-row"><span class="label">Revenue</span><span class="value gold">${fmtMoney(stats.revenue)}</span></div>
       </div>
       <div style="margin-top:16px;text-align:center;">
         <button class="btn-outline" style="width:100%;" onclick="editProduct('${p.id}')">Edit Product</button>
@@ -170,15 +163,33 @@ function renderDispatchHistory() {
   </tr>`).join('');
 }
 
+// Returns array of active offers for a product
+function getProductOffers(p) {
+  const offers = [];
+  [2,3,4].forEach(n => {
+    const label = p[`offer${n}_label`];
+    const qty   = p[`offer${n}_qty`];
+    const price = p[`offer${n}_price`];
+    if (label && price > 0) offers.push({ label, qty: qty || n, price });
+  });
+  return offers;
+}
+
 function editProduct(id) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
   document.getElementById('product-id').value = p.id;
-  document.getElementById('p-name').value = p.name || '';
-  document.getElementById('p-sku').value = p.sku || '';
-  document.getElementById('p-sell').value = p.selling_price || 0;
-  document.getElementById('p-cost').value = p.cost_price || 0;
+  document.getElementById('p-name').value  = p.name || '';
+  document.getElementById('p-sku').value   = p.sku || '';
+  document.getElementById('p-sell').value  = p.selling_price || 0;
+  document.getElementById('p-cost').value  = p.cost_price || 0;
   document.getElementById('p-stock').value = p.total_stock || 0;
+  // Offers
+  [2,3,4].forEach(n => {
+    document.getElementById(`p-o${n}-label`).value = p[`offer${n}_label`] || '';
+    document.getElementById(`p-o${n}-qty`).value   = p[`offer${n}_qty`]   || n;
+    document.getElementById(`p-o${n}-price`).value = p[`offer${n}_price`] || 0;
+  });
   document.getElementById('product-modal-title').textContent = 'Edit Product';
   openModal('modal-product');
 }
@@ -193,7 +204,13 @@ async function saveProduct() {
   if (!name) { showToast('Product name is required', 'error'); return; }
   const btn = document.getElementById('save-product-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
-  const payload = { name, sku, selling_price, cost_price, total_stock };
+  const offerFields = {};
+  [2,3,4].forEach(n => {
+    offerFields[`offer${n}_label`] = document.getElementById(`p-o${n}-label`).value.trim() || null;
+    offerFields[`offer${n}_qty`]   = Number(document.getElementById(`p-o${n}-qty`).value) || n;
+    offerFields[`offer${n}_price`] = Number(document.getElementById(`p-o${n}-price`).value) || 0;
+  });
+  const payload = { name, sku, selling_price, cost_price, total_stock, ...offerFields };
   let error;
   if (id) {
     const res = await window._supabase.from('products').update(payload).eq('id', id).select();
@@ -287,11 +304,16 @@ async function deleteDispatch(id) {
 function bindEvents() {
   document.getElementById('btn-add-product').addEventListener('click', () => {
     document.getElementById('product-id').value = '';
-    document.getElementById('p-name').value = '';
-    document.getElementById('p-sku').value = '';
-    document.getElementById('p-sell').value = 0;
-    document.getElementById('p-cost').value = 0;
+    document.getElementById('p-name').value  = '';
+    document.getElementById('p-sku').value   = '';
+    document.getElementById('p-sell').value  = 0;
+    document.getElementById('p-cost').value  = 0;
     document.getElementById('p-stock').value = 0;
+    [2,3,4].forEach(n => {
+      document.getElementById(`p-o${n}-label`).value = '';
+      document.getElementById(`p-o${n}-qty`).value   = n;
+      document.getElementById(`p-o${n}-price`).value = 0;
+    });
     document.getElementById('product-modal-title').textContent = 'Add Product';
     openModal('modal-product');
   });
