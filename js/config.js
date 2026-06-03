@@ -75,16 +75,17 @@ function statusBadge(key) {
 }
 
 function calcTier(orderDateStr) {
-  if (!orderDateStr) return 'C';
-  const months = (Date.now() - new Date(orderDateStr)) / (1000 * 60 * 60 * 24 * 30);
-  if (months <= 3) return 'A';
-  if (months <= 6) return 'B';
-  return 'C';
+  if (!orderDateStr) return 'D';
+  const m = new Date(orderDateStr).getMonth() + 1; // 1–12
+  if (m === 11 || m === 12) return 'A';
+  if (m === 1  || m === 2)  return 'B';
+  if (m === 3  || m === 4)  return 'C';
+  return 'D'; // May, June, or anything else
 }
 
 function tierBadge(tier) {
-  const cls = { A: 'badge-tier-a', B: 'badge-tier-b', C: 'badge-tier-c' }[tier] || 'badge-tier-c';
-  return `<span class="badge ${cls}">Tier ${tier || 'C'}</span>`;
+  const cls = { A: 'badge-tier-a', B: 'badge-tier-b', C: 'badge-tier-c', D: 'badge-tier-d' }[tier] || 'badge-tier-d';
+  return `<span class="badge ${cls}">Tier ${tier || 'D'}</span>`;
 }
 
 function fmtMoney(n) {

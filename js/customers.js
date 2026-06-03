@@ -66,7 +66,9 @@ async function loadAll() {
     applyFilters();
   } catch (err) {
     console.error(err);
-    showToast('Failed to load data', 'error');
+    const msg = err?.message || err?.error_description || JSON.stringify(err) || 'Unknown error';
+    showToast('Failed to load data: ' + msg, 'error');
+    document.getElementById('customers-body').innerHTML = `<tr><td colspan="10" class="empty-state" style="color:#E24B4A;">${msg}</td></tr>`;
   }
 }
 
@@ -402,15 +404,55 @@ function handleCsvFile(e) {
   reader.readAsText(file);
 }
 
+// Month name → YYYY-MM-DD, using 2024 for Nov/Dec and 2025 for Jan–Jun
+const MONTH_TO_DATE = {
+  january:'2025-01-01', february:'2025-02-01', march:'2025-03-01',
+  april:'2025-04-01',   may:'2025-05-01',       june:'2025-06-01',
+  july:'2025-07-01',    august:'2025-08-01',    september:'2025-09-01',
+  october:'2025-10-01', november:'2024-11-01',  december:'2024-12-01',
+};
+
+function parseCsvLine(line) {
+  // Handles quoted fields containing commas
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
 function parseCsv(text) {
-  const lines = text.trim().split('\n');
+  const lines = text.trim().split('\n').filter(l => l.trim());
   if (lines.length < 2) throw new Error('CSV must have header + at least one data row');
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_').replace(/^"|"$/g,''));
-  return lines.slice(1).filter(l=>l.trim()).map(line => {
-    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-    const row = {};
-    headers.forEach((h,i) => row[h] = vals[i]||'');
-    return row;
+  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/^"|"$/g,'').trim());
+  const isNexo = headers.includes('customer name') || headers.includes('order month');
+  return lines.slice(1).map(line => {
+    const vals = parseCsvLine(line).map(v => v.replace(/^"|"$/g,'').trim());
+    const raw = {};
+    headers.forEach((h, i) => raw[h] = vals[i] || '');
+    if (isNexo) {
+      const monthKey = (raw['order month'] || '').toLowerCase();
+      return {
+        full_name:        raw['customer name'] || '',
+        phone:            raw['phone number'] || '',
+        state:            raw['location'] || '',
+        original_product: raw['product'] || '',
+        order_date:       MONTH_TO_DATE[monthKey] || null,
+        _source_sheet:    raw['sheet'] || '',
+      };
+    }
+    return {
+      full_name:        raw['full_name'] || raw['name'] || '',
+      phone:            raw['phone'] || '',
+      state:            raw['state'] || '',
+      order_date:       raw['order_date'] || null,
+      original_product: raw['original_product'] || raw['product'] || '',
+    };
   });
 }
 
@@ -419,11 +461,11 @@ async function importCsv() {
   const btn = document.getElementById('import-csv-btn');
   btn.disabled=true; btn.textContent='Importing…';
   const records = csvRows.map(r => ({
-    full_name: r.full_name||r.name||'',
-    phone: r.phone||'',
-    state: r.state||'',
-    order_date: r.order_date||null,
-    original_product: r.original_product||r.product||'',
+    full_name:        r.full_name || '',
+    phone:            r.phone || '',
+    state:            r.state || '',
+    order_date:       r.order_date || null,
+    original_product: r.original_product || '',
   })).filter(r => r.full_name && r.phone);
   const { error } = await window._supabase.from('customers').insert(records);
   btn.disabled=false; btn.textContent='Import';

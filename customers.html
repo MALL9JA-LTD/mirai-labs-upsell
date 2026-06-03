@@ -71,9 +71,10 @@
           </div>
           <select class="form-filter" id="filter-tier">
             <option value="">All Tiers</option>
-            <option value="A">Tier A</option>
-            <option value="B">Tier B</option>
-            <option value="C">Tier C</option>
+            <option value="A">Tier A — Nov/Dec</option>
+            <option value="B">Tier B — Jan/Feb</option>
+            <option value="C">Tier C — Mar/Apr</option>
+            <option value="D">Tier D — May/Jun</option>
           </select>
           <select class="form-filter" id="filter-status">
             <option value="">Any Campaign Status</option>
@@ -194,7 +195,12 @@
       <div class="modal-body">
         <div class="info-banner" style="margin-bottom:14px;">
           <span class="info-icon">ℹ</span>
-          <div>Columns required (header row): <code>full_name, phone, state, order_date, original_product</code>. Tier is calculated automatically.</div>
+          <div>
+            Accepts two formats:<br>
+            <strong>Standard:</strong> <code>full_name, phone, state, order_date, original_product</code><br>
+            <strong>Nexo Mart / CRS:</strong> <code>Sheet, Customer Name, Phone Number, Location, Product, Quantity, Sales Price, Order Month</code><br>
+            Tier is assigned automatically by order month (A=Nov/Dec · B=Jan/Feb · C=Mar/Apr · D=May/Jun).
+          </div>
         </div>
         <div class="form-group">
           <label>CSV File</label>

@@ -633,6 +633,11 @@ a:hover { color: var(--ml-gold-light); }
   color: #888070;
 }
 
+.badge-tier-d {
+  background: rgba(100,160,220,0.10);
+  color: #7EB8E8;
+}
+
 .badge-success {
   background: rgba(29,158,117,0.12);
   color: #5DCAA5;
