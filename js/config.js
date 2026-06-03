@@ -56,21 +56,21 @@ function statusBadge(key) {
   const label = statusLabel(key);
   const cls = {
     delivered:          'badge-success',
-    ordered:            'badge-info',
-    ordered_pending:    'badge-info',
-    pending:            'badge-info',
-    interested:         'badge-warning',
-    callback_requested: 'badge-warning',
-    answered:           'badge-secondary',
+    ordered:            'badge-gold',
+    ordered_pending:    'badge-amber',
+    interested:         'badge-amber',
     declined:           'badge-danger',
     failed_delivery:    'badge-danger',
-    failed:             'badge-danger',
-    returned:           'badge-secondary',
+    returned:           'badge-danger',
     angry:              'badge-danger',
-    no_answer:          'badge-secondary',
-    wrong_number:       'badge-secondary',
-    not_contacted:      'badge-secondary',
-  }[key] || 'badge-secondary';
+    answered:           'badge-neutral',
+    no_answer:          'badge-neutral',
+    callback_requested: 'badge-neutral',
+    wrong_number:       'badge-neutral',
+    pending:            'badge-amber',
+    failed:             'badge-danger',
+    not_contacted:      'badge-neutral',
+  }[key] || 'badge-neutral';
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
@@ -83,8 +83,8 @@ function calcTier(orderDateStr) {
 }
 
 function tierBadge(tier) {
-  const cls = { A: 'badge-success', B: 'badge-warning', C: 'badge-secondary' }[tier] || 'badge-secondary';
-  return `<span class="badge ${cls}">Tier ${tier}</span>`;
+  const cls = { A: 'badge-tier-a', B: 'badge-tier-b', C: 'badge-tier-c' }[tier] || 'badge-tier-c';
+  return `<span class="badge ${cls}">Tier ${tier || 'C'}</span>`;
 }
 
 function fmtMoney(n) {

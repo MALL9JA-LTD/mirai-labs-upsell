@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MIRAI LABS — Login</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIRAI LABS — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
 
   <div class="login-card">
     <div class="login-brand">
-      <div class="brand-name">MIRAI LABS</div>
-      <div class="brand-tagline">Upsell Tracker CRM</div>
+      <div class="brand-name"><span style="color:var(--ml-white)">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="brand-tagline">Upsell Tracker</div>
     </div>
 
     <div class="login-title">Sign in to your account</div>
@@ -19,16 +22,16 @@
     <form id="login-form">
       <div class="form-group">
         <label for="email">Email address</label>
-        <input type="email" id="email" placeholder="you@mirailabs.com" required autocomplete="email" />
+        <input class="form-input" type="email" id="email" placeholder="you@mirailabs.com" required autocomplete="email" />
       </div>
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+        <input class="form-input" type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
       </div>
       <a href="/reset-password" class="forgot-link">Forgot password?</a>
       <div id="login-error" class="form-error" style="margin-bottom:10px;"></div>
-      <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; justify-content:center;">
-        Sign in
+      <button type="submit" class="btn-primary" id="login-btn" style="width:100%;justify-content:center;">
+        SIGN IN
       </button>
     </form>
   </div>
@@ -36,7 +39,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/config.js"></script>
   <script>
-    // If already logged in, redirect
     (async () => {
       const { data: { session } } = await window._supabase.auth.getSession();
       if (session) window.location.href = '/dashboard';
@@ -57,7 +59,7 @@
       if (error) {
         errEl.textContent = error.message || 'Invalid credentials. Please try again.';
         btn.disabled = false;
-        btn.textContent = 'Sign in';
+        btn.textContent = 'SIGN IN';
       } else {
         window.location.href = '/dashboard';
       }

@@ -1,117 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIRAI LABS — Dashboard</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <div class="app">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="topbar-right">
+        <span class="user-role" id="topbar-role"></span>
+        <div class="avatar" id="topbar-avatar"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav id="sidebar-nav"></nav>
+      </aside>
+      <!-- MAIN -->
+      <main class="main-content page-enter">
 
-  <!-- Mobile topbar -->
-  <div class="topbar">
-    <button id="hamburger">☰</button>
-    <span class="brand-name">MIRAI LABS</span>
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle">Welcome back — here's what's happening today.</div>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-label">Pending Value</div>
+            <div class="kpi-value" id="kpi-pending">—</div>
+            <div class="kpi-sub">Total pending deliveries</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📈</div>
+            <div class="kpi-label">Revenue This Month</div>
+            <div class="kpi-value" id="kpi-revenue">—</div>
+            <div class="kpi-sub">Delivered orders</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">💎</div>
+            <div class="kpi-label">Profit This Month</div>
+            <div class="kpi-value" id="kpi-profit">—</div>
+            <div class="kpi-sub">Revenue minus cost</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-label">Conversion Rate</div>
+            <div class="kpi-value" id="kpi-conversion">—</div>
+            <div class="kpi-sub">Delivered / (delivered + failed)</div>
+          </div>
+        </div>
+
+        <!-- Two-col: Recent Calls + Recent Deliveries -->
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Calls</div>
+              <a href="/calls" class="btn-outline btn-sm">View all</a>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Agent</th>
+                    <th>Outcome</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-calls-body">
+                  <tr class="loading-row"><td colspan="4"><span class="spinner"></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Deliveries</div>
+              <a href="/deliveries" class="btn-outline btn-sm">View all</a>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-deliveries-body">
+                  <tr class="loading-row"><td colspan="4"><span class="spinner"></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
   </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-name">MIRAI LABS</div>
-      <div class="brand-sub">Upsell Tracker</div>
-    </div>
-    <nav id="sidebar-nav"></nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user-info">
-        <span id="sidebar-user"></span>
-        <span id="sidebar-role"></span>
-      </div>
-      <button id="btn-logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">Logout</button>
-    </div>
-  </aside>
-
-  <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Welcome back! Here's what's happening today.</div>
-      </div>
-    </div>
-
-    <!-- KPI Cards -->
-    <div class="kpi-grid" id="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-label">Pending Value</div>
-        <div class="kpi-value" id="kpi-pending">—</div>
-        <div class="kpi-sub">Total pending deliveries</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">📈</div>
-        <div class="kpi-label">Revenue This Month</div>
-        <div class="kpi-value" id="kpi-revenue">—</div>
-        <div class="kpi-sub">Delivered orders</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">💎</div>
-        <div class="kpi-label">Profit This Month</div>
-        <div class="kpi-value" id="kpi-profit">—</div>
-        <div class="kpi-sub">Revenue minus cost</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">🎯</div>
-        <div class="kpi-label">Conversion Rate</div>
-        <div class="kpi-value" id="kpi-conversion">—</div>
-        <div class="kpi-sub">Delivered / (delivered + failed)</div>
-      </div>
-    </div>
-
-    <!-- Two-col: Recent Calls + Recent Deliveries -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📞 Recent Calls</div>
-          <a href="/calls" class="btn btn-secondary btn-sm">View all</a>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Agent</th>
-                <th>Outcome</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="recent-calls-body">
-              <tr class="loading-row"><td colspan="4"><span class="spinner"></span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📦 Recent Deliveries</div>
-          <a href="/deliveries" class="btn btn-secondary btn-sm">View all</a>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="recent-deliveries-body">
-              <tr class="loading-row"><td colspan="4"><span class="spinner"></span></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/config.js"></script>

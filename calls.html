@@ -1,105 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIRAI LABS — Calls</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
   <style>
     #order-section { display: none; }
-    .item-remove-btn {
-      background: none;
-      border: 1px solid var(--danger);
-      color: var(--danger);
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 4px 7px;
-      line-height: 1;
-      align-self: flex-end;
-      margin-bottom: 0;
-    }
-    .item-remove-btn:hover { background: var(--danger); color: #fff; }
-    .running-total {
-      text-align: right;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--primary);
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
-    }
   </style>
 </head>
 <body>
+  <div class="app">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="topbar-right">
+        <span class="user-role" id="topbar-role"></span>
+        <div class="avatar" id="topbar-avatar"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav id="sidebar-nav"></nav>
+      </aside>
+      <!-- MAIN -->
+      <main class="main-content page-enter">
 
-  <div class="topbar">
-    <button id="hamburger">☰</button>
-    <span class="brand-name">MIRAI LABS</span>
+        <div class="page-header">
+          <div>
+            <div class="page-title">Calls &amp; Orders</div>
+            <div class="page-subtitle">Log all customer interactions — calls, WhatsApp, and orders</div>
+          </div>
+          <button class="btn-primary" id="btn-log-call">Log New Call</button>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search customer…" />
+          </div>
+          <select id="filter-outcome" class="btn btn-secondary" style="padding:8px 12px;">
+            <option value="">All Outcomes</option>
+          </select>
+          <select id="filter-agent" class="btn btn-secondary" style="padding:8px 12px;">
+            <option value="">All Agents</option>
+          </select>
+          <input type="date" id="filter-date-from" class="btn btn-secondary" style="padding:8px 12px;" title="From date" />
+          <input type="date" id="filter-date-to"   class="btn btn-secondary" style="padding:8px 12px;" title="To date" />
+        </div>
+
+        <!-- Calls Table -->
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Agent</th>
+                  <th>Channel</th>
+                  <th>Outcome</th>
+                  <th>Notes</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="calls-body">
+                <tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+      </main>
+    </div>
   </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-name">MIRAI LABS</div>
-      <div class="brand-sub">Upsell Tracker</div>
-    </div>
-    <nav id="sidebar-nav"></nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user-info">
-        <span id="sidebar-user"></span>
-        <span id="sidebar-role"></span>
-      </div>
-      <button id="btn-logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">Logout</button>
-    </div>
-  </aside>
-
-  <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Calls &amp; Orders</div>
-        <div class="page-subtitle">Log all customer interactions — calls, WhatsApp, and orders</div>
-      </div>
-      <button class="btn btn-primary" id="btn-log-call">📞 Log New Call</button>
-    </div>
-
-    <!-- Filter Bar -->
-    <div class="toolbar">
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="Search customer…" />
-      </div>
-      <select id="filter-outcome" class="btn btn-secondary" style="padding:8px 12px;">
-        <option value="">All Outcomes</option>
-      </select>
-      <select id="filter-agent" class="btn btn-secondary" style="padding:8px 12px;">
-        <option value="">All Agents</option>
-      </select>
-      <input type="date" id="filter-date-from" class="btn btn-secondary" style="padding:8px 12px;" title="From date" />
-      <input type="date" id="filter-date-to"   class="btn btn-secondary" style="padding:8px 12px;" title="To date" />
-    </div>
-
-    <!-- Calls Table -->
-    <div class="card">
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Phone</th>
-              <th>Agent</th>
-              <th>Channel</th>
-              <th>Outcome</th>
-              <th>Notes</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="calls-body">
-            <tr class="loading-row"><td colspan="7"><span class="spinner"></span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="pagination" id="pagination"></div>
-    </div>
-  </main>
 
   <!-- Log Call Modal -->
   <div class="modal-overlay" id="modal-call">
@@ -118,15 +99,15 @@
             <div class="autocomplete-list" id="customer-list" style="display:none;"></div>
           </div>
           <input type="hidden" id="selected-customer-id" />
-          <div id="selected-customer-info" style="margin-top:6px;font-size:12.5px;color:var(--text-muted);"></div>
+          <div id="selected-customer-info" style="margin-top:6px;font-size:12px;color:var(--ml-muted);"></div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label>Channel *</label>
             <select id="call-channel">
-              <option value="call">📞 Phone Call</option>
-              <option value="whatsapp">💬 WhatsApp</option>
+              <option value="call">Phone Call</option>
+              <option value="whatsapp">WhatsApp</option>
             </select>
           </div>
           <div class="form-group">
@@ -142,7 +123,7 @@
 
         <!-- Order section — shown when outcome = ordered -->
         <div id="order-section" class="order-section">
-          <div class="order-section-title">🛒 Order Details</div>
+          <div class="order-section-title">Order Details</div>
 
           <div id="items-container"></div>
 
@@ -171,8 +152,8 @@
 
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-call')">Cancel</button>
-        <button class="btn btn-primary" id="submit-call-btn">Save</button>
+        <button class="btn-ghost" onclick="closeModal('modal-call')">Cancel</button>
+        <button class="btn-primary" id="submit-call-btn">Save</button>
       </div>
     </div>
   </div>

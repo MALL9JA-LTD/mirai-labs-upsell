@@ -1,126 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIRAI LABS — Inventory</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <div class="app">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="topbar-right">
+        <span class="user-role" id="topbar-role"></span>
+        <div class="avatar" id="topbar-avatar"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav id="sidebar-nav"></nav>
+      </aside>
+      <!-- MAIN -->
+      <main class="main-content page-enter">
 
-  <div class="topbar">
-    <button id="hamburger">☰</button>
-    <span class="brand-name">MIRAI LABS</span>
+        <div class="page-header">
+          <div>
+            <div class="page-title">Inventory</div>
+            <div class="page-subtitle">Manage products and dispatch stock to delivery staff</div>
+          </div>
+          <button class="btn-primary" id="btn-add-product">+ Add Product</button>
+        </div>
+
+        <!-- Products Table -->
+        <div class="section-label">Products</div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>SKU</th>
+                  <th>Total Stock</th>
+                  <th>Dispatched</th>
+                  <th>Delivered</th>
+                  <th>Available</th>
+                  <th>Cost Price</th>
+                  <th>Selling Price</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-body">
+                <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dispatch Section -->
+        <div class="section-label">Dispatch Inventory</div>
+        <div class="card">
+          <form id="dispatch-form" style="max-width:520px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Product *</label>
+                <select id="dispatch-product">
+                  <option value="">— Select product —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Staff *</label>
+                <select id="dispatch-staff">
+                  <option value="">— Select staff —</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Quantity *</label>
+                <input type="number" id="dispatch-qty" min="1" value="1" />
+              </div>
+              <div class="form-group">
+                <label>Notes</label>
+                <input type="text" id="dispatch-notes" placeholder="Optional notes" />
+              </div>
+            </div>
+            <button type="submit" class="btn-primary" id="dispatch-btn">Dispatch</button>
+          </form>
+        </div>
+
+        <!-- Dispatch History -->
+        <div class="section-label">Dispatch History</div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Staff</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="dispatch-history-body">
+                <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
   </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-name">MIRAI LABS</div>
-      <div class="brand-sub">Upsell Tracker</div>
-    </div>
-    <nav id="sidebar-nav"></nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user-info">
-        <span id="sidebar-user"></span>
-        <span id="sidebar-role"></span>
-      </div>
-      <button id="btn-logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">Logout</button>
-    </div>
-  </aside>
-
-  <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Inventory</div>
-        <div class="page-subtitle">Manage products and dispatch stock to delivery staff</div>
-      </div>
-      <button class="btn btn-primary" id="btn-add-product">+ Add Product</button>
-    </div>
-
-    <!-- Products Table -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">🏭 Products</div>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>SKU</th>
-              <th>Total Stock</th>
-              <th>Dispatched</th>
-              <th>Delivered</th>
-              <th>Available</th>
-              <th>Cost Price</th>
-              <th>Selling Price</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="products-body">
-            <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Dispatch Section -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">🚚 Dispatch Inventory</div>
-      </div>
-      <form id="dispatch-form" style="max-width:500px;">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Product *</label>
-            <select id="dispatch-product">
-              <option value="">— Select product —</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Delivery Staff *</label>
-            <select id="dispatch-staff">
-              <option value="">— Select staff —</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Quantity *</label>
-            <input type="number" id="dispatch-qty" min="1" value="1" />
-          </div>
-          <div class="form-group">
-            <label>Notes</label>
-            <input type="text" id="dispatch-notes" placeholder="Optional notes" />
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary" id="dispatch-btn">Dispatch</button>
-      </form>
-    </div>
-
-    <!-- Dispatch History -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">📋 Dispatch History</div>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Staff</th>
-              <th>Quantity</th>
-              <th>Notes</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="dispatch-history-body">
-            <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </main>
 
   <!-- Add/Edit Product Modal -->
   <div class="modal-overlay" id="modal-product">
@@ -163,8 +160,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancel</button>
-        <button class="btn btn-primary" id="save-product-btn">Save Product</button>
+        <button class="btn-ghost" onclick="closeModal('modal-product')">Cancel</button>
+        <button class="btn-primary" id="save-product-btn">Save Product</button>
       </div>
     </div>
   </div>

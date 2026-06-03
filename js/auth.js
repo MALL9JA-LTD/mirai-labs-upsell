@@ -11,39 +11,47 @@ async function requireAuth() {
 
 function renderSidebar(profile, session) {
   const isAdmin = profile?.role === 'admin';
+
   const links = [
-    { href: '/dashboard',      icon: '📊', label: 'Dashboard',      admin: false },
-    { href: '/customers',      icon: '👥', label: 'Customers',      admin: false },
-    { href: '/calls',          icon: '📞', label: 'Calls',          admin: false },
-    { href: '/deliveries',     icon: '📦', label: 'Deliveries',     admin: false },
-    { href: '/inventory',      icon: '🏭', label: 'Inventory',      admin: true  },
-    { href: '/reports',        icon: '📈', label: 'Reports',        admin: false },
-    { href: '/agents',         icon: '🧑‍💼', label: 'Agents',      admin: true  },
-    { href: '/website-orders', icon: '🛒', label: 'Website Orders', admin: true  },
+    { href: '/dashboard',      icon: '◈', label: 'Dashboard',      admin: false },
+    { href: '/customers',      icon: '⬡', label: 'Customers',      admin: false },
+    { href: '/calls',          icon: '◎', label: 'Calls',          admin: false },
+    { href: '/deliveries',     icon: '▣', label: 'Deliveries',     admin: false },
+    { href: '/inventory',      icon: '◰', label: 'Inventory',      admin: true  },
+    { href: '/reports',        icon: '◫', label: 'Reports',        admin: false },
+    { href: '/agents',         icon: '◯', label: 'Agents',         admin: true  },
+    { href: '/website-orders', icon: '◱', label: 'Website Orders', admin: true  },
   ];
+
   const nav = document.getElementById('sidebar-nav');
-  if (!nav) return;
-  nav.innerHTML = links
-    .filter(l => !l.admin || isAdmin)
-    .map(l => `<a href="${l.href}" class="sidebar-link ${location.pathname.startsWith(l.href) ? 'active' : ''}">${l.icon} <span>${l.label}</span></a>`)
-    .join('');
+  if (nav) {
+    nav.innerHTML = links
+      .filter(l => !l.admin || isAdmin)
+      .map(l => {
+        const isActive = location.pathname.startsWith(l.href);
+        return `<a href="${l.href}" class="sidebar-icon${isActive ? ' active' : ''}" title="${l.label}" aria-label="${l.label}">${l.icon}</a>`;
+      })
+      .join('');
+  }
 
-  const userEl = document.getElementById('sidebar-user');
-  if (userEl) userEl.textContent = profile?.full_name || session?.user?.email || '';
+  // Topbar avatar & role
+  const avatarEl = document.getElementById('topbar-avatar');
+  if (avatarEl) {
+    const name = profile?.full_name || session?.user?.email || '';
+    const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+    avatarEl.textContent = initials || '?';
+  }
 
-  const roleEl = document.getElementById('sidebar-role');
-  if (roleEl) roleEl.textContent = isAdmin ? 'Administrator' : 'CRS Agent';
+  const roleEl = document.getElementById('topbar-role');
+  if (roleEl) {
+    roleEl.textContent = isAdmin ? 'Administrator' : 'CRS Agent';
+  }
 
   const logoutBtn = document.getElementById('btn-logout');
-  if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-    await window._supabase.auth.signOut();
-    window.location.href = '/';
-  });
-
-  // Mobile hamburger
-  const hamburger = document.getElementById('hamburger');
-  const sidebar = document.querySelector('.sidebar');
-  if (hamburger && sidebar) {
-    hamburger.addEventListener('click', () => sidebar.classList.toggle('open'));
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await window._supabase.auth.signOut();
+      window.location.href = '/';
+    });
   }
 }

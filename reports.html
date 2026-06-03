@@ -1,137 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIRAI LABS — Reports</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <div class="app">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="topbar-right">
+        <span class="user-role" id="topbar-role"></span>
+        <div class="avatar" id="topbar-avatar"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav id="sidebar-nav"></nav>
+      </aside>
+      <!-- MAIN -->
+      <main class="main-content page-enter">
 
-  <div class="topbar">
-    <button id="hamburger">☰</button>
-    <span class="brand-name">MIRAI LABS</span>
+        <div class="page-header">
+          <div>
+            <div class="page-title">Reports</div>
+            <div class="page-subtitle">Revenue, profit, and performance analytics</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ml-muted);">From</label>
+            <input type="date" id="date-from" class="btn btn-secondary" style="padding:8px 12px;" />
+            <label style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--ml-muted);">To</label>
+            <input type="date" id="date-to" class="btn btn-secondary" style="padding:8px 12px;" />
+            <button class="btn-primary" id="btn-run-report">Run Report</button>
+          </div>
+        </div>
+
+        <!-- Summary KPIs -->
+        <div class="kpi-grid" id="report-kpis">
+          <div class="kpi-card">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value" id="r-revenue">—</div>
+            <div class="kpi-sub">Delivered orders</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🏷</div>
+            <div class="kpi-label">Total Cost</div>
+            <div class="kpi-value" id="r-cost">—</div>
+            <div class="kpi-sub">Cost of goods sold</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">💎</div>
+            <div class="kpi-label">Gross Profit</div>
+            <div class="kpi-value" id="r-profit">—</div>
+            <div class="kpi-sub">Revenue minus cost</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-label">Profit Margin</div>
+            <div class="kpi-value" id="r-margin">—</div>
+            <div class="kpi-sub">Gross profit / revenue</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-label">Total Deliveries</div>
+            <div class="kpi-value" id="r-deliveries">—</div>
+            <div class="kpi-sub">Delivered in period</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-label">Conversion Rate</div>
+            <div class="kpi-value" id="r-conversion">—</div>
+            <div class="kpi-sub">Delivered / (delivered + failed)</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Per Agent -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Per Agent Breakdown</div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Agent</th>
+                    <th>Orders</th>
+                    <th>Delivered</th>
+                    <th>Failed</th>
+                    <th>Revenue</th>
+                    <th>Profit</th>
+                  </tr>
+                </thead>
+                <tbody id="agent-breakdown-body">
+                  <tr><td colspan="6" class="empty-state">Run a report to see data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Per Product -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Per Product Breakdown</div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Units Sold</th>
+                    <th>Revenue</th>
+                    <th>Cost</th>
+                    <th>Profit</th>
+                  </tr>
+                </thead>
+                <tbody id="product-breakdown-body">
+                  <tr><td colspan="5" class="empty-state">Run a report to see data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
   </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-name">MIRAI LABS</div>
-      <div class="brand-sub">Upsell Tracker</div>
-    </div>
-    <nav id="sidebar-nav"></nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user-info">
-        <span id="sidebar-user"></span>
-        <span id="sidebar-role"></span>
-      </div>
-      <button id="btn-logout" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">Logout</button>
-    </div>
-  </aside>
-
-  <main class="main-content">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Reports</div>
-        <div class="page-subtitle">Revenue, profit, and performance analytics</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <label style="font-size:13px;font-weight:600;">From:</label>
-        <input type="date" id="date-from" class="btn btn-secondary" style="padding:8px 12px;" />
-        <label style="font-size:13px;font-weight:600;">To:</label>
-        <input type="date" id="date-to" class="btn btn-secondary" style="padding:8px 12px;" />
-        <button class="btn btn-primary" id="btn-run-report">Run Report</button>
-      </div>
-    </div>
-
-    <!-- Summary KPIs -->
-    <div class="kpi-grid" id="report-kpis">
-      <div class="kpi-card">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-label">Total Revenue</div>
-        <div class="kpi-value" id="r-revenue">—</div>
-        <div class="kpi-sub">Delivered orders</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">🏷️</div>
-        <div class="kpi-label">Total Cost</div>
-        <div class="kpi-value" id="r-cost">—</div>
-        <div class="kpi-sub">Cost of goods sold</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">💎</div>
-        <div class="kpi-label">Gross Profit</div>
-        <div class="kpi-value" id="r-profit">—</div>
-        <div class="kpi-sub">Revenue minus cost</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">📊</div>
-        <div class="kpi-label">Profit Margin</div>
-        <div class="kpi-value" id="r-margin">—</div>
-        <div class="kpi-sub">Gross profit / revenue</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">📦</div>
-        <div class="kpi-label">Total Deliveries</div>
-        <div class="kpi-value" id="r-deliveries">—</div>
-        <div class="kpi-sub">Delivered in period</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">🎯</div>
-        <div class="kpi-label">Conversion Rate</div>
-        <div class="kpi-value" id="r-conversion">—</div>
-        <div class="kpi-sub">Delivered / (delivered + failed)</div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <!-- Per Agent -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🧑‍💼 Per Agent Breakdown</div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Orders</th>
-                <th>Delivered</th>
-                <th>Failed</th>
-                <th>Revenue</th>
-                <th>Profit</th>
-              </tr>
-            </thead>
-            <tbody id="agent-breakdown-body">
-              <tr><td colspan="6" class="empty-state">Run a report to see data</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Per Product -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🏷️ Per Product Breakdown</div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Units Sold</th>
-                <th>Revenue</th>
-                <th>Cost</th>
-                <th>Profit</th>
-              </tr>
-            </thead>
-            <tbody id="product-breakdown-body">
-              <tr><td colspan="5" class="empty-state">Run a report to see data</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/config.js"></script>
