@@ -14,6 +14,12 @@ async function requireAuth() {
   if (!session) { window.location.href = '/'; return null; }
   const { data: profile } = await window._supabase
     .from('profiles').select('*').eq('id', session.user.id).single();
+  // Block deactivated accounts immediately
+  if (profile && profile.is_active === false) {
+    await window._supabase.auth.signOut();
+    window.location.href = '/?msg=deactivated';
+    return null;
+  }
   window._profile = profile;
   window._session = session;
   // Expose helpers on window for use in page scripts

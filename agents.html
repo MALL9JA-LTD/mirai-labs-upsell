@@ -14,6 +14,32 @@
     .tab-btn.active { color:var(--ml-gold); border-bottom-color:var(--ml-gold); }
     .tab-pane { display:none; }
     .tab-pane.active { display:block; }
+
+    /* 3-dot dropdown */
+    .dots-btn { background:none; border:none; color:var(--ml-muted); font-size:18px; cursor:pointer; padding:2px 8px; border-radius:4px; line-height:1; }
+    .dots-btn:hover { background:var(--ml-surface3); color:var(--ml-white); }
+    .row-menu-wrap { position:relative; display:inline-block; }
+    .row-menu {
+      display:none; position:fixed; z-index:9999;
+      background:var(--ml-surface2); border:0.5px solid var(--ml-border);
+      border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+      min-width:180px; overflow:hidden;
+    }
+    .row-menu.open { display:block; }
+    .row-menu-section { padding:4px 0; border-bottom:0.5px solid var(--ml-border); }
+    .row-menu-section:last-child { border-bottom:none; }
+    .row-menu-label { padding:6px 14px 2px; font-size:10px; color:var(--ml-muted); letter-spacing:0.1em; text-transform:uppercase; }
+    .row-menu-item {
+      display:block; width:100%; text-align:left; background:none; border:none;
+      padding:8px 14px; font-size:12px; color:var(--ml-text); cursor:pointer;
+      font-family:var(--ff-body);
+    }
+    .row-menu-item:hover { background:var(--ml-surface3); }
+    .row-menu-item.active-role { color:var(--ml-gold); }
+    .row-menu-item.danger { color:var(--danger); }
+    .row-menu-item:disabled { color:var(--ml-muted); cursor:default; }
+    .row-menu-item:disabled:hover { background:none; }
+    tr.inactive-agent td { opacity:0.45; }
   </style>
 </head>
 <body>
@@ -102,33 +128,6 @@
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-add-crs')">Cancel</button>
         <button class="btn-primary" id="save-crs-btn">Create Account</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Change Role Modal -->
-  <div class="modal-overlay" id="modal-change-role">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <div class="modal-title">Change Role</div>
-        <button class="modal-close" onclick="closeModal('modal-change-role')">✕</button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="change-role-id" />
-        <div class="form-group">
-          <label>Role</label>
-          <select id="change-role-value">
-            <option value="crs_agent">CRS Agent</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="temp_admin">Temp Admin</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div id="change-role-error" class="form-error"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" onclick="closeModal('modal-change-role')">Cancel</button>
-        <button class="btn-primary" id="save-role-btn">Save</button>
       </div>
     </div>
   </div>

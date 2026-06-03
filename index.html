@@ -47,6 +47,11 @@
       if (session) window.location.href = '/dashboard';
     })();
 
+    // Show message if redirected back due to deactivation
+    if (new URLSearchParams(location.search).get('msg') === 'deactivated') {
+      document.getElementById('login-error').textContent = 'Your account has been deactivated. Contact your administrator.';
+    }
+
     document.getElementById('login-form').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('login-btn');
