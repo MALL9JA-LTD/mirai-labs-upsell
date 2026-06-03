@@ -355,15 +355,28 @@ async function autoDistribute() {
   if (unassigned.length === 0) { showToast('No unassigned customers','error'); return; }
   const btn = document.getElementById('confirm-distribute-btn');
   btn.disabled=true; btn.textContent='Distributing…';
+
+  // Build the full upsert payload in memory (round-robin assignment)
   let idx = 0;
-  const updates = unassigned.map(c => ({ id: c.id, assigned_to: agentIds[idx++ % agentIds.length] }));
-  for (const u of updates) {
-    await window._supabase.from('customers').update({assigned_to:u.assigned_to}).eq('id',u.id);
+  const rows = unassigned.map(c => ({ id: c.id, assigned_to: agentIds[idx++ % agentIds.length] }));
+
+  // Batch upsert in chunks of 500 to stay within Supabase body limits
+  const CHUNK = 500;
+  let hasError = false;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    const { error } = await window._supabase
+      .from('customers')
+      .upsert(chunk, { onConflict: 'id' });
+    if (error) { showToast('Distribution error: ' + error.message, 'error'); hasError = true; break; }
   }
+
   btn.disabled=false; btn.textContent='Distribute';
-  showToast(`Distributed ${updates.length} customers to ${agentIds.length} agent(s)`);
-  closeModal('modal-distribute');
-  await loadAll();
+  if (!hasError) {
+    showToast(`Distributed ${rows.length} customers to ${agentIds.length} agent(s)`);
+    closeModal('modal-distribute');
+    await loadAll();
+  }
 }
 
 function exportCustomersCsv() {
