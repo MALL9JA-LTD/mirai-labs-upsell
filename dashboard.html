@@ -25,143 +25,114 @@
 
         <div class="page-header">
           <div>
-            <div class="page-title">Dashboard</div>
-            <div class="page-subtitle">Overview of pipeline, revenue, and team performance</div>
+            <div class="page-title" id="dash-greeting">Dashboard</div>
+            <div class="page-subtitle">Live overview of the CRS upsell campaign.</div>
           </div>
         </div>
 
-        <!-- KPI Row 1 -->
-        <div class="kpi-grid" id="kpi-row1">
-          <div class="kpi-card">
-            <div class="kpi-label">Pipeline Revenue</div>
-            <div class="kpi-value" id="kpi-pipeline">Loading…</div>
-            <div class="kpi-sub">Pending deliveries</div>
+        <!-- ROW 1: 5 KPI cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
+          <div class="stat-card" id="kpi-pipeline"><div class="stat-label">Pipeline Revenue</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-revenue"><div class="stat-label">Realized Revenue</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-profit"><div class="stat-label">Profit</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-agents"><div class="stat-label">CRS Agents</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-dstaff"><div class="stat-label">Delivery Staff</div><div class="stat-value">—</div></div>
+        </div>
+
+        <!-- ROW 2: 3 KPI cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+          <div class="stat-card" id="kpi-delfees"><div class="stat-label">Total Delivery Fees</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-waybill"><div class="stat-label">Total Waybill Paid</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-productcost"><div class="stat-label">Total Product Cost</div><div class="stat-value">—</div></div>
+        </div>
+
+        <!-- CUSTOMER FUNNEL -->
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <span class="card-title">Customer Funnel</span>
+            <span style="font-size:11px;color:var(--ml-muted);">How the campaign is progressing</span>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Realized Revenue</div>
-            <div class="kpi-value" id="kpi-realized">Loading…</div>
-            <div class="kpi-sub">Delivered orders</div>
-          </div>
-          <div class="kpi-card" id="kpi-profit-card">
-            <div class="kpi-label">Profit</div>
-            <div class="kpi-value" id="kpi-profit">Loading…</div>
-            <div class="kpi-sub">Revenue minus all costs</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">CRS Agents</div>
-            <div class="kpi-value" id="kpi-crs">Loading…</div>
-            <div class="kpi-sub">Active agents</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Delivery Staff</div>
-            <div class="kpi-value" id="kpi-dstaff">Loading…</div>
-            <div class="kpi-sub">Active staff members</div>
+          <div class="funnel-row" id="funnel-row">
+            <div class="funnel-step">
+              <div class="section-label" style="justify-content:center;">TOTAL CUSTOMERS</div>
+              <div class="stat-value" style="font-size:36px;text-align:center;" id="funnel-total">—</div>
+              <div style="font-size:11px;color:var(--ml-gold);text-align:center;" id="funnel-total-sub">In database</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step">
+              <div class="section-label" style="justify-content:center;">CONTACTED</div>
+              <div class="stat-value" style="font-size:36px;text-align:center;" id="funnel-contacted">—</div>
+              <div style="font-size:11px;color:var(--ml-gold);text-align:center;" id="funnel-contacted-pct">&nbsp;</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step">
+              <div class="section-label" style="justify-content:center;">ORDERED</div>
+              <div class="stat-value" style="font-size:36px;text-align:center;" id="funnel-ordered">—</div>
+              <div style="font-size:11px;color:var(--ml-gold);text-align:center;" id="funnel-ordered-pct">&nbsp;</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step">
+              <div class="section-label" style="justify-content:center;">DELIVERED</div>
+              <div class="stat-value" style="font-size:36px;text-align:center;" id="funnel-delivered">—</div>
+              <div style="font-size:11px;color:var(--ml-gold);text-align:center;" id="funnel-delivered-pct">&nbsp;</div>
+            </div>
           </div>
         </div>
 
-        <!-- KPI Row 2 (admin only) -->
-        <div class="kpi-grid" id="kpi-row2" style="display:none;">
-          <div class="kpi-card">
-            <div class="kpi-label">Total Delivery Fees Paid</div>
-            <div class="kpi-value" id="kpi-delfees">—</div>
-            <div class="kpi-sub">All statuses</div>
+        <!-- ROW 3: 3 KPI cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+          <div class="stat-card" id="kpi-orders"><div class="stat-label">Total Orders</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-delivered"><div class="stat-label">Delivered</div><div class="stat-value">—</div></div>
+          <div class="stat-card" id="kpi-delrate"><div class="stat-label">Delivery Rate</div><div class="stat-value">—</div></div>
+        </div>
+
+        <!-- BOTTOM: 2 tables side by side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-header">
+              <span class="card-title">Revenue by Product</span>
+            </div>
+            <div id="rev-by-product">
+              <table class="data-table">
+                <thead><tr><th>PRODUCT</th><th>UNITS</th><th>REVENUE</th><th>% OF TOTAL</th></tr></thead>
+                <tbody><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              </table>
+            </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Total Waybill Paid</div>
-            <div class="kpi-value" id="kpi-waybill">—</div>
-            <div class="kpi-sub">All statuses</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Total Product Cost</div>
-            <div class="kpi-value" id="kpi-prodcost">—</div>
-            <div class="kpi-sub">Delivered deliveries</div>
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-header">
+              <span class="card-title">Revenue by Tier</span>
+            </div>
+            <div id="rev-by-tier">
+              <table class="data-table">
+                <thead><tr><th>TIER</th><th>ORDERS</th><th>REVENUE</th><th>CONVERSION</th></tr></thead>
+                <tbody><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- Customer Funnel -->
-        <div class="section-label">CUSTOMER FUNNEL</div>
-        <div id="funnel-row" style="display:flex;gap:0;align-items:center;margin-bottom:24px;">
-          <div class="kpi-card" style="flex:1;text-align:center;">
-            <div class="kpi-label">Total Customers</div>
-            <div class="kpi-value" id="funnel-total">—</div>
-            <div class="kpi-sub">&nbsp;</div>
+        <!-- TOP CRS AGENTS TABLE -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <span class="card-title">Top CRS Agents</span>
           </div>
-          <div style="font-size:22px;color:var(--ml-gold-dim);padding:0 8px;">→</div>
-          <div class="kpi-card" style="flex:1;text-align:center;">
-            <div class="kpi-label">Contacted</div>
-            <div class="kpi-value" id="funnel-contacted">—</div>
-            <div class="kpi-sub" id="funnel-contacted-pct">&nbsp;</div>
-          </div>
-          <div style="font-size:22px;color:var(--ml-gold-dim);padding:0 8px;">→</div>
-          <div class="kpi-card" style="flex:1;text-align:center;">
-            <div class="kpi-label">Ordered</div>
-            <div class="kpi-value" id="funnel-ordered">—</div>
-            <div class="kpi-sub" id="funnel-ordered-pct">&nbsp;</div>
-          </div>
-          <div style="font-size:22px;color:var(--ml-gold-dim);padding:0 8px;">→</div>
-          <div class="kpi-card" style="flex:1;text-align:center;">
-            <div class="kpi-label">Delivered</div>
-            <div class="kpi-value" id="funnel-delivered">—</div>
-            <div class="kpi-sub" id="funnel-delivered-pct">&nbsp;</div>
-          </div>
-        </div>
-
-        <!-- KPI Row 3 -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
-          <div class="kpi-card">
-            <div class="kpi-label">Total Orders</div>
-            <div class="kpi-value" id="kpi-total-orders">—</div>
-            <div class="kpi-sub">All statuses</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Delivered</div>
-            <div class="kpi-value" id="kpi-delivered-count">—</div>
-            <div class="kpi-sub">Successful deliveries</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Delivery Rate</div>
-            <div class="kpi-value" id="kpi-del-rate">—</div>
-            <div class="kpi-sub">Delivered / total orders</div>
-          </div>
-        </div>
-
-        <!-- Revenue by Product -->
-        <div class="section-label">REVENUE BY PRODUCT</div>
-        <div class="card" style="margin-bottom:24px;">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>PRODUCT</th><th>UNITS</th><th>REVENUE</th><th>% OF TOTAL</th></tr></thead>
-              <tbody id="rev-product-body"><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Revenue by Tier -->
-        <div class="section-label">REVENUE BY TIER</div>
-        <div class="card" style="margin-bottom:24px;">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>TIER</th><th>ORDERS</th><th>REVENUE</th><th>CONVERSION</th></tr></thead>
-              <tbody id="rev-tier-body"><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Top CRS Agents -->
-        <div class="section-label">TOP CRS AGENTS</div>
-        <div class="card" style="margin-bottom:24px;">
-          <div class="table-wrapper">
+          <div id="top-agents">
             <table class="data-table">
               <thead><tr><th>AGENT</th><th>CALLS</th><th>ORDERS</th><th>REVENUE</th></tr></thead>
-              <tbody id="top-agents-body"><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              <tbody><tr><td colspan="4" class="empty-state"><em>Loading…</em></td></tr></tbody>
             </table>
           </div>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="section-label">RECENT ACTIVITY</div>
+        <!-- RECENT ACTIVITY FEED -->
         <div class="card">
-          <div id="activity-feed" style="padding:8px 0;"><em style="color:var(--ml-muted);padding:16px;display:block;">Loading…</em></div>
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+          </div>
+          <div id="recent-activity" style="padding:4px 0;">
+            <em style="color:var(--ml-muted);padding:16px;display:block;">Loading…</em>
+          </div>
         </div>
 
       </main>

@@ -11,9 +11,10 @@
   <style>
     .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
     .bar-label { width:140px; font-size:12px; flex-shrink:0; }
-    .bar-track { flex:1; height:10px; background:var(--ml-surface3); border-radius:2px; overflow:hidden; }
-    .bar-fill { height:100%; background:linear-gradient(90deg,var(--ml-gold),var(--ml-gold-light)); border-radius:2px; transition:width 0.4s ease; }
-    .bar-val { width:80px; font-size:12px; color:var(--ml-muted); text-align:right; flex-shrink:0; }
+    .bar-track { flex:1; height:8px; background:var(--ml-surface3); border-radius:3px; overflow:hidden; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,var(--ml-gold),var(--ml-gold-light)); border-radius:3px; transition:width 0.4s ease; }
+    .bar-val { width:100px; font-size:12px; color:var(--ml-muted); text-align:right; flex-shrink:0; }
+    .section-with-action { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; margin-top:8px; }
   </style>
 </head>
 <body>
@@ -33,88 +34,104 @@
         <div class="page-header">
           <div>
             <div class="page-title">Reports</div>
-            <div class="page-subtitle">Revenue, profit, and performance analytics</div>
+            <div class="page-subtitle">Revenue and performance — filter by date range.</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ml-muted);">From</label>
-            <input type="date" id="date-from" style="padding:6px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+            <input type="date" id="date-from" style="padding:6px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);outline:none;" />
             <label style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ml-muted);">To</label>
-            <input type="date" id="date-to" style="padding:6px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+            <input type="date" id="date-to" style="padding:6px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);outline:none;" />
             <button class="btn-primary" id="btn-run">Apply</button>
             <button class="btn-outline" id="btn-export-all">Export All</button>
           </div>
         </div>
 
-        <!-- KPI Cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
-          <div class="kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value" id="r-revenue">—</div><div class="kpi-sub">Delivered orders</div></div>
-          <div class="kpi-card"><div class="kpi-label">Orders</div><div class="kpi-value" id="r-orders">—</div><div class="kpi-sub">Total delivered</div></div>
-          <div class="kpi-card"><div class="kpi-label">Avg Order Value</div><div class="kpi-value" id="r-aov">—</div><div class="kpi-sub">Revenue / orders</div></div>
-          <div class="kpi-card"><div class="kpi-label">Delivery Rate</div><div class="kpi-value" id="r-rate">—</div><div class="kpi-sub">Delivered / total</div></div>
+        <!-- 4 KPI Cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-value" id="r-revenue">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);">Delivered orders</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Orders</div>
+            <div class="stat-value" id="r-orders">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);">Total delivered</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Order Value</div>
+            <div class="stat-value" id="r-aov">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);">Revenue / orders</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Delivery Rate</div>
+            <div class="stat-value" id="r-rate">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);">Delivered / total</div>
+          </div>
         </div>
 
         <!-- Revenue by Product -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:8px;">
-          <div class="section-label" style="margin:0;">REVENUE BY PRODUCT</div>
+        <div class="section-with-action">
+          <div class="section-label" style="margin:0;flex:1;">REVENUE BY PRODUCT</div>
           <button class="btn-ghost btn-sm" onclick="exportSection('product')">Export CSV</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
-          <div id="product-bars" style="padding:16px;"></div>
+          <div id="product-bars" style="padding:8px 0 16px;"></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>PRODUCT</th><th>UNITS</th><th>REVENUE</th><th>% OF TOTAL</th></tr></thead>
-              <tbody id="product-table-body"><tr><td colspan="4" class="empty-state"><em>Run report to see data.</em></td></tr></tbody>
+              <tbody id="product-table-body"><tr><td colspan="4" class="empty-state"><em>Apply a date range to see data.</em></td></tr></tbody>
             </table>
           </div>
         </div>
 
         <!-- Revenue by Tier -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="section-label" style="margin:0;">REVENUE BY TIER</div>
+        <div class="section-with-action">
+          <div class="section-label" style="margin:0;flex:1;">REVENUE BY TIER</div>
           <button class="btn-ghost btn-sm" onclick="exportSection('tier')">Export CSV</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>TIER</th><th>ORDERS</th><th>REVENUE</th><th>CONVERSION %</th></tr></thead>
-              <tbody id="tier-table-body"><tr><td colspan="4" class="empty-state"><em>Run report to see data.</em></td></tr></tbody>
+              <tbody id="tier-table-body"><tr><td colspan="4" class="empty-state"><em>Apply a date range to see data.</em></td></tr></tbody>
             </table>
           </div>
         </div>
 
         <!-- Revenue by CRS Agent -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="section-label" style="margin:0;">REVENUE BY CRS AGENT</div>
+        <div class="section-with-action">
+          <div class="section-label" style="margin:0;flex:1;">REVENUE BY CRS AGENT</div>
           <button class="btn-ghost btn-sm" onclick="exportSection('agent')">Export CSV</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>AGENT</th><th>CALLS</th><th>ORDERS</th><th>REVENUE</th></tr></thead>
-              <tbody id="agent-table-body"><tr><td colspan="4" class="empty-state"><em>Run report to see data.</em></td></tr></tbody>
+              <tbody id="agent-table-body"><tr><td colspan="4" class="empty-state"><em>Apply a date range to see data.</em></td></tr></tbody>
             </table>
           </div>
         </div>
 
         <!-- Call Outcomes -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="section-label" style="margin:0;">CALL OUTCOMES</div>
+        <div class="section-with-action">
+          <div class="section-label" style="margin:0;flex:1;">CALL OUTCOMES</div>
           <button class="btn-ghost btn-sm" onclick="exportSection('outcomes')">Export CSV</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
-          <div id="outcome-bars" style="padding:16px;"></div>
+          <div id="outcome-bars" style="padding:8px 0;"></div>
         </div>
 
-        <!-- Delivery Performance by Staff -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="section-label" style="margin:0;">DELIVERY PERFORMANCE BY STAFF</div>
+        <!-- Delivery Performance by Agent -->
+        <div class="section-with-action">
+          <div class="section-label" style="margin:0;flex:1;">DELIVERY PERFORMANCE BY AGENT</div>
           <button class="btn-ghost btn-sm" onclick="exportSection('delivery')">Export CSV</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>AGENT</th><th>DELIVERED</th><th>FAILED</th><th>SUCCESS RATE</th><th>REVENUE</th></tr></thead>
-              <tbody id="delivery-perf-body"><tr><td colspan="5" class="empty-state"><em>Run report to see data.</em></td></tr></tbody>
+              <tbody id="delivery-perf-body"><tr><td colspan="5" class="empty-state"><em>Apply a date range to see data.</em></td></tr></tbody>
             </table>
           </div>
         </div>

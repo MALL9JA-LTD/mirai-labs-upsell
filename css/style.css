@@ -1257,3 +1257,48 @@ tbody tr:hover td { background: rgba(201,146,42,0.04); }
   .kpi-grid { grid-template-columns: 1fr; }
   .login-card { padding: 28px 20px; }
 }
+
+/* ============================================================
+   FUNNEL
+   ============================================================ */
+.funnel-row { display:flex; align-items:center; justify-content:space-around; }
+.funnel-step { flex:1; text-align:center; padding:20px 16px; }
+.funnel-arrow { color:var(--ml-gold-dim); font-size:20px; padding:0 4px; }
+
+/* ============================================================
+   CALLS LAYOUT
+   ============================================================ */
+.call-queue { display:flex; height:calc(100vh - 180px); gap:0; }
+.call-list-panel { width:300px; flex-shrink:0; border-right:0.5px solid var(--ml-border); overflow-y:auto; }
+.call-detail-panel { flex:1; padding:24px; overflow-y:auto; }
+.customer-queue-item { padding:12px 16px; border-bottom:0.5px solid var(--ml-border); cursor:pointer; transition:background 0.15s; }
+.customer-queue-item:hover, .customer-queue-item.active { background:rgba(201,146,42,0.06); }
+.customer-queue-item .cqi-name { font-size:13px; font-weight:400; color:var(--ml-white); margin-bottom:3px; }
+.customer-queue-item .cqi-meta { font-size:11px; color:var(--ml-muted); margin-bottom:5px; }
+.call-rate-bar { display:flex; align-items:center; gap:8px; padding:8px 0 16px; flex-wrap:wrap; font-size:12px; color:var(--ml-muted); }
+.call-rate-chip { background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:4px; padding:4px 10px; font-size:11px; color:var(--ml-white); }
+.call-rate-chip span { color:var(--ml-gold); font-weight:500; }
+.call-history-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:0.5px solid var(--ml-border); }
+
+/* ============================================================
+   REPORTS BAR CHARTS
+   ============================================================ */
+.perf-table-wrap { overflow-x:auto; margin-bottom:20px; }
+.bar-chart-row { display:flex; align-items:center; gap:12px; padding:6px 0; }
+.bar-track { flex:1; height:6px; background:var(--ml-surface3); border-radius:3px; overflow:hidden; }
+.bar-fill { height:100%; background:var(--ml-gold); border-radius:3px; transition:width 0.4s ease; }
+
+/* ============================================================
+   PRODUCT CARDS (Inventory)
+   ============================================================ */
+.product-card { background:var(--ml-surface2); border:0.5px solid var(--ml-border); border-radius:8px; padding:20px; margin-bottom:16px; }
+.product-card-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:0.5px solid var(--ml-border); font-size:13px; }
+.product-card-row:last-of-type { border-bottom:none; }
+.product-card-row .label { color:var(--ml-muted); }
+.product-card-row .value { color:var(--ml-white); font-weight:400; }
+.product-card-row .value.gold { color:var(--ml-gold-light); font-family:var(--ff-display); font-size:15px; }
+
+/* ============================================================
+   BULK ACTION BAR
+   ============================================================ */
+.bulk-action-bar { background:var(--ml-surface3); border:0.5px solid var(--ml-border-strong); border-radius:6px; padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:12px; }

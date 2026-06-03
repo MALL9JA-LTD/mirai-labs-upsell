@@ -12,6 +12,7 @@
     .crs-perf-table th, .crs-perf-table td { font-size:12px; }
     .bulk-bar { display:none; align-items:center; gap:10px; padding:8px 16px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-md); margin-bottom:12px; }
     .bulk-bar.visible { display:flex; }
+    select.form-filter { padding:8px 10px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-sm); color:var(--ml-white); font-size:12px; }
   </style>
 </head>
 <body>
@@ -31,23 +32,23 @@
         <div class="page-header">
           <div>
             <div class="page-title">Customers</div>
-            <div class="page-subtitle">Manage and view all customer records</div>
+            <div class="page-subtitle">Filter, assign, import and manage your campaign list.</div>
           </div>
           <div style="display:flex;gap:8px;" id="header-actions">
-            <button class="btn-primary" id="btn-add-customer">+ Add Customer</button>
-            <button class="btn-outline" id="btn-export-csv">Export CSV</button>
-            <button class="btn-outline" id="btn-auto-distribute">Auto-Distribute</button>
-            <button class="btn-outline" id="btn-import-csv">Import CSV</button>
+            <button class="btn-ghost btn-sm" id="btn-add-customer">+ Add Customer</button>
+            <button class="btn-ghost btn-sm" id="btn-export-csv">Export CSV</button>
+            <button class="btn-ghost btn-sm" id="btn-auto-distribute">Auto-Distribute</button>
+            <button class="btn-primary" id="btn-import-csv">Import CSV</button>
           </div>
         </div>
 
         <!-- CRS Performance (admin only) -->
-        <div id="crs-perf-section" style="display:none;margin-bottom:24px;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-            <div class="section-label" style="margin:0;">CRS PERFORMANCE</div>
+        <div id="crs-perf-section" style="display:none;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <div class="section-label" style="margin:0;flex:1;">CRS PERFORMANCE</div>
             <button class="btn-ghost btn-sm" id="btn-toggle-perf">Hide</button>
           </div>
-          <div class="card" id="crs-perf-card">
+          <div class="card" id="crs-perf-card" style="margin-bottom:0;">
             <div class="table-wrapper">
               <table class="data-table crs-perf-table">
                 <thead>
@@ -59,6 +60,7 @@
                 <tbody id="perf-body"><tr><td colspan="9" class="empty-state"><em>Loading…</em></td></tr></tbody>
               </table>
             </div>
+            <div style="font-size:11px;color:var(--ml-muted);padding:8px 12px;">Conv % = Delivered ÷ Total assigned.</div>
           </div>
         </div>
 
@@ -67,26 +69,26 @@
           <div class="search-box">
             <input type="text" id="search-input" placeholder="Search name or phone…" />
           </div>
-          <select id="filter-tier">
+          <select class="form-filter" id="filter-tier">
             <option value="">All Tiers</option>
             <option value="A">Tier A</option>
             <option value="B">Tier B</option>
             <option value="C">Tier C</option>
           </select>
-          <select id="filter-status">
+          <select class="form-filter" id="filter-status">
             <option value="">Any Campaign Status</option>
             <option value="not_contacted">Not Contacted</option>
-            <option value="contacted">Contacted</option>
+            <option value="contacted">Contacted no order</option>
             <option value="interested">Interested</option>
             <option value="ordered_pending">Ordered Pending</option>
             <option value="delivered">Delivered</option>
             <option value="failed">Failed</option>
           </select>
-          <select id="filter-agent">
+          <select class="form-filter" id="filter-agent">
             <option value="">All Agents</option>
           </select>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ml-muted);">
-            <input type="checkbox" id="filter-website" /> Website orders
+            <input type="checkbox" id="filter-website" /> Include website orders
           </label>
         </div>
 
@@ -99,7 +101,7 @@
           <select id="bulk-agent-select" style="padding:4px 8px;font-size:12px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
             <option value="">— Select agent —</option>
           </select>
-          <button class="btn-primary btn-sm" id="bulk-assign-btn">Assign</button>
+          <button class="btn-primary btn-sm" id="bulk-assign-btn">Apply</button>
         </div>
 
         <div class="card">
@@ -125,11 +127,11 @@
     </div>
   </div>
 
-  <!-- Add Customer Modal -->
+  <!-- Add/Edit Customer Modal -->
   <div class="modal-overlay" id="modal-customer">
     <div class="modal">
       <div class="modal-header">
-        <div class="modal-title">Add Customer</div>
+        <div class="modal-title" id="cust-modal-title">Add Customer</div>
         <button class="modal-close" onclick="closeModal('modal-customer')">✕</button>
       </div>
       <div class="modal-body">

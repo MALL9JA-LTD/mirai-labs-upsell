@@ -1,41 +1,38 @@
-(async () => {
+async function init() {
   const profile = await requireAuth();
   if (!profile) return;
-  const isAdmin = profile.role === 'admin';
+  const isAdmin = profile?.role === 'admin';
 
-  if (!isAdmin) {
-    document.getElementById('kpi-profit-card').style.display = 'none';
-  } else {
-    document.getElementById('kpi-row2').style.display = '';
-  }
+  // Greeting
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = profile?.full_name?.split(' ')[0] || '';
+  document.getElementById('dash-greeting').textContent = greet + (firstName ? ', ' + firstName : '');
 
   try {
-    const [deliveries, callLogs, customers, profiles, deliveryStaff, products] = await Promise.all([
-      fetchAll((from, to) =>
+    // Fetch all data in parallel
+    const [deliveries, callLogs, customers, profiles, products, deliveryStaff] = await Promise.all([
+      fetchAll((f, t) =>
         window._supabase.from('deliveries')
-          .select('id,status,sale_price,delivery_fee,waybill_fee,customer_id,agent_id,items,product_id,quantity,delivery_staff_id,delivery_date,created_at')
-          .order('id').range(from, to)
+          .select('id,status,sale_price,delivery_fee,waybill_fee,quantity,product_id,items,agent_id,logged_by,customer_id,products(id,name,cost_price)')
+          .order('id').range(f, t)
       ),
-      fetchAll((from, to) =>
+      fetchAll((f, t) =>
         window._supabase.from('call_logs')
           .select('id,customer_id,agent_id,outcome,call_date,channel,customers(full_name),profiles(full_name)')
-          .order('call_date',{ascending:false}).order('id',{ascending:false}).range(from, to)
+          .order('call_date', { ascending: false }).order('id', { ascending: false }).range(f, t)
       ),
-      fetchAll((from, to) =>
-        window._supabase.from('customers')
-          .select('id,order_date,assigned_to').order('id').range(from, to)
+      fetchAll((f, t) =>
+        window._supabase.from('customers').select('id,order_date').order('id').range(f, t)
       ),
-      fetchAll((from, to) =>
-        window._supabase.from('profiles')
-          .select('id,full_name,role').in('role',['admin','crs_agent']).order('full_name').range(from, to)
+      fetchAll((f, t) =>
+        window._supabase.from('profiles').select('id,full_name,role').in('role', ['admin', 'crs_agent']).order('full_name').range(f, t)
       ),
-      fetchAll((from, to) =>
-        window._supabase.from('delivery_staff')
-          .select('id,active').order('id').range(from, to)
+      fetchAll((f, t) =>
+        window._supabase.from('products').select('id,name,cost_price,selling_price').order('name').range(f, t)
       ),
-      fetchAll((from, to) =>
-        window._supabase.from('products')
-          .select('id,name,cost_price').order('name').range(from, to)
+      fetchAll((f, t) =>
+        window._supabase.from('delivery_staff').select('id,active').order('id').range(f, t)
       ),
     ]);
 
@@ -45,175 +42,242 @@
     const pending   = deliveries.filter(d => d.status === 'pending');
     const delivered = deliveries.filter(d => d.status === 'delivered');
 
-    // KPI Row 1
-    const pipeline = pending.reduce((s, d) => s + Number(d.sale_price || 0), 0);
-    const realized = delivered.reduce((s, d) => s + Number(d.sale_price || 0), 0);
-    document.getElementById('kpi-pipeline').textContent = fmtMoney(pipeline);
-    document.getElementById('kpi-realized').textContent = fmtMoney(realized);
-
-    if (isAdmin) {
-      const totalFees = deliveries.reduce((s, d) => s + Number(d.delivery_fee || 0), 0);
-      const totalWaybill = deliveries.reduce((s, d) => s + Number(d.waybill_fee || 0), 0);
-      let totalCost = 0;
-      delivered.forEach(d => {
-        const items = Array.isArray(d.items) ? d.items : [];
-        if (items.length > 0) {
-          items.forEach(it => {
-            const p = productMap[it.product_id];
-            if (p) totalCost += Number(p.cost_price || 0) * Number(it.qty || 1);
-          });
-        } else {
-          const p = productMap[d.product_id];
-          if (p) totalCost += Number(p.cost_price || 0) * Number(d.quantity || 1);
-        }
-      });
-      const profit = realized - totalFees - totalWaybill - totalCost;
-      document.getElementById('kpi-profit').textContent = fmtMoney(profit);
-      document.getElementById('kpi-delfees').textContent = fmtMoney(totalFees);
-      document.getElementById('kpi-waybill').textContent = fmtMoney(totalWaybill);
-      document.getElementById('kpi-prodcost').textContent = fmtMoney(totalCost);
-    } else {
-      document.getElementById('kpi-profit').textContent = '—';
-    }
-
-    const crsCount = profiles.filter(p => p.role === 'crs_agent').length;
-    const activeStaff = deliveryStaff.filter(s => s.active).length;
-    document.getElementById('kpi-crs').textContent = crsCount;
-    document.getElementById('kpi-dstaff').textContent = activeStaff;
-
-    // Customer Funnel
-    const custWithCalls = new Set(callLogs.map(c => c.customer_id));
-    const custWithOrders = new Set(deliveries.map(d => d.customer_id));
-    const custDelivered = new Set(delivered.map(d => d.customer_id));
-    const totalCust = customers.length;
-    const contactedCount = customers.filter(c => custWithCalls.has(c.id)).length;
-    const orderedCount = customers.filter(c => custWithOrders.has(c.id)).length;
-    const deliveredCount = customers.filter(c => custDelivered.has(c.id)).length;
-
-    document.getElementById('funnel-total').textContent = totalCust;
-    document.getElementById('funnel-contacted').textContent = contactedCount;
-    document.getElementById('funnel-contacted-pct').textContent = totalCust ? ((contactedCount/totalCust*100).toFixed(1)+'% of total') : '';
-    document.getElementById('funnel-ordered').textContent = orderedCount;
-    document.getElementById('funnel-ordered-pct').textContent = contactedCount ? ((orderedCount/contactedCount*100).toFixed(1)+'% of contacted') : '';
-    document.getElementById('funnel-delivered').textContent = deliveredCount;
-    document.getElementById('funnel-delivered-pct').textContent = orderedCount ? ((deliveredCount/orderedCount*100).toFixed(1)+'% of ordered') : '';
-
-    // KPI Row 3
-    document.getElementById('kpi-total-orders').textContent = deliveries.length;
-    document.getElementById('kpi-delivered-count').textContent = delivered.length;
-    const delRate = deliveries.length > 0 ? (delivered.length/deliveries.length*100).toFixed(1)+'%' : '—';
-    document.getElementById('kpi-del-rate').textContent = delRate;
-
-    // Revenue by Product
-    const revByProduct = {};
-    delivered.forEach(d => {
-      const items = Array.isArray(d.items) ? d.items : [];
-      if (items.length > 0) {
+    // KPI 1: Pipeline Revenue
+    const pipeline = pending.reduce((s, d) => s + (Number(d.sale_price) || 0), 0);
+    // KPI 2: Realized Revenue
+    const revenue = delivered.reduce((s, d) => s + (Number(d.sale_price) || 0), 0);
+    // KPI 3: Profit
+    const profit = delivered.reduce((s, d) => {
+      let cost = 0;
+      const items = Array.isArray(d.items) && d.items.length > 0 ? d.items : null;
+      if (items) {
         items.forEach(it => {
           const p = productMap[it.product_id];
-          const name = p ? p.name : 'Unknown';
-          if (!revByProduct[name]) revByProduct[name] = { units: 0, revenue: 0 };
-          revByProduct[name].units += Number(it.qty || 1);
-          revByProduct[name].revenue += Number(it.sale_price || 0) * Number(it.qty || 1);
+          cost += (Number(p?.cost_price) || 0) * (Number(it.qty) || 1);
         });
       } else {
         const p = productMap[d.product_id];
-        const name = p ? p.name : 'Unknown';
-        if (!revByProduct[name]) revByProduct[name] = { units: 0, revenue: 0 };
-        revByProduct[name].units += Number(d.quantity || 1);
-        revByProduct[name].revenue += Number(d.sale_price || 0);
+        cost = (Number(p?.cost_price) || 0) * (Number(d.quantity) || 1);
       }
-    });
-    const totalRevForPct = Object.values(revByProduct).reduce((s,r) => s + r.revenue, 0);
-    const productRows = Object.entries(revByProduct).sort((a,b) => b[1].revenue - a[1].revenue);
-    const revProductBody = document.getElementById('rev-product-body');
-    if (productRows.length === 0) {
-      revProductBody.innerHTML = '<tr><td colspan="4" class="empty-state"><em>No delivered orders yet.</em></td></tr>';
-    } else {
-      revProductBody.innerHTML = productRows.map(([name, r]) =>
-        `<tr><td>${name}</td><td>${r.units}</td><td class="cell-amount">${fmtMoney(r.revenue)}</td><td>${totalRevForPct > 0 ? (r.revenue/totalRevForPct*100).toFixed(1)+'%' : '—'}</td></tr>`
-      ).join('');
-    }
+      return s + (Number(d.sale_price) || 0) - cost - (Number(d.delivery_fee) || 0) - (Number(d.waybill_fee) || 0);
+    }, 0);
+    // KPI 4: Active CRS agents
+    const crsCount = profiles.filter(p => p.role === 'crs_agent').length;
+    // KPI 5: Delivery staff count
+    const dstaffCount = deliveryStaff.filter(s => s.active).length;
+    // KPI 6: Total delivery fees
+    const delFees = deliveries.reduce((s, d) => s + (Number(d.delivery_fee) || 0), 0);
+    // KPI 7: Total waybill
+    const waybill = deliveries.reduce((s, d) => s + (Number(d.waybill_fee) || 0), 0);
+    // KPI 8: Total product cost (delivered only)
+    const prodCost = delivered.reduce((s, d) => {
+      const items = Array.isArray(d.items) && d.items.length > 0 ? d.items : null;
+      if (items) {
+        return s + items.reduce((ss, it) => {
+          const p = productMap[it.product_id];
+          return ss + (Number(p?.cost_price) || 0) * (Number(it.qty) || 1);
+        }, 0);
+      }
+      const p = productMap[d.product_id];
+      return s + (Number(p?.cost_price) || 0) * (Number(d.quantity) || 1);
+    }, 0);
 
+    // Render KPI cards
+    setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
+    setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
+    if (isAdmin) {
+      setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
+    } else {
+      document.getElementById('kpi-profit').innerHTML = hiddenKpi('Profit (Admin Only)');
+    }
+    setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
+    setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
+    setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
+    setKpi('kpi-waybill', fmtMoney(waybill),  'Total Waybill Paid',  'Inter-state shipping out of Lagos', '📮');
+    setKpi('kpi-productcost', fmtMoney(prodCost), 'Total Product Cost', 'Cost of goods sold (delivered only)', '🏭');
+
+    // Customer Funnel
+    const contactedSet = new Set(callLogs.map(c => c.customer_id));
+    const orderedSet   = new Set(deliveries.map(d => d.customer_id));
+    const deliveredSet = new Set(delivered.map(d => d.customer_id));
+    const totalCust    = customers.length;
+    const contactedCount  = customers.filter(c => contactedSet.has(c.id)).length;
+    const orderedCount    = customers.filter(c => orderedSet.has(c.id)).length;
+    const deliveredCount  = customers.filter(c => deliveredSet.has(c.id)).length;
+
+    const pct = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '0%';
+    document.getElementById('funnel-total').textContent = totalCust;
+    document.getElementById('funnel-contacted').textContent = contactedCount;
+    document.getElementById('funnel-contacted-pct').textContent = pct(contactedCount, totalCust) + ' of total';
+    document.getElementById('funnel-ordered').textContent = orderedCount;
+    document.getElementById('funnel-ordered-pct').textContent = pct(orderedCount, contactedCount) + ' of contacted';
+    document.getElementById('funnel-delivered').textContent = deliveredCount;
+    document.getElementById('funnel-delivered-pct').textContent = pct(deliveredCount, orderedCount) + ' of ordered';
+
+    // Row 3 KPIs
+    const allOrdersCount = deliveries.length;
+    const deliveredOrdersCount = delivered.length;
+    setKpi('kpi-orders',    allOrdersCount,    'Total Orders',  'All delivery records', '🛒');
+    setKpi('kpi-delivered', deliveredOrdersCount, 'Delivered', 'Confirmed deliveries', '✅');
+    const delRate = allOrdersCount > 0 ? (deliveredOrdersCount / allOrdersCount * 100).toFixed(1) + '%' : '0%';
+    setKpi('kpi-delrate', delRate, 'Delivery Rate', 'Delivered / Ordered', '📊');
+
+    // Revenue by Product
+    renderRevenueByProduct(delivered, productMap);
     // Revenue by Tier
-    const tierMap = { A: { orders: 0, revenue: 0, custTotal: 0, custDelivered: 0 },
-                      B: { orders: 0, revenue: 0, custTotal: 0, custDelivered: 0 },
-                      C: { orders: 0, revenue: 0, custTotal: 0, custDelivered: 0 } };
-    customers.forEach(c => {
-      const tier = calcTier(c.order_date);
-      if (tierMap[tier]) tierMap[tier].custTotal++;
-    });
-    delivered.forEach(d => {
-      const cust = customers.find(c => c.id === d.customer_id);
-      if (!cust) return;
-      const tier = calcTier(cust.order_date);
-      if (tierMap[tier]) {
-        tierMap[tier].orders++;
-        tierMap[tier].revenue += Number(d.sale_price || 0);
-      }
-    });
-    customers.filter(c => custDelivered.has(c.id)).forEach(c => {
-      const tier = calcTier(c.order_date);
-      if (tierMap[tier]) tierMap[tier].custDelivered++;
-    });
-    const revTierBody = document.getElementById('rev-tier-body');
-    revTierBody.innerHTML = ['A','B','C'].map(tier => {
-      const t = tierMap[tier];
-      const conv = t.custTotal > 0 ? (t.custDelivered/t.custTotal*100).toFixed(1)+'%' : '—';
-      return `<tr><td>${tierBadge(tier)}</td><td>${t.orders}</td><td class="cell-amount">${fmtMoney(t.revenue)}</td><td>${conv}</td></tr>`;
-    }).join('');
-
+    renderRevenueByTier(delivered, customers);
     // Top CRS Agents
-    const agentPerfMap = {};
-    profiles.filter(p => p.role === 'crs_agent').forEach(p => {
-      agentPerfMap[p.id] = { name: p.full_name, calls: 0, orders: 0, revenue: 0 };
-    });
-    callLogs.forEach(c => {
-      if (agentPerfMap[c.agent_id]) agentPerfMap[c.agent_id].calls++;
-    });
-    delivered.forEach(d => {
-      if (agentPerfMap[d.agent_id]) {
-        agentPerfMap[d.agent_id].orders++;
-        agentPerfMap[d.agent_id].revenue += Number(d.sale_price || 0);
-      }
-    });
-    const agentRows = Object.values(agentPerfMap).sort((a,b) => b.revenue - a.revenue);
-    const topAgentBody = document.getElementById('top-agents-body');
-    if (agentRows.length === 0) {
-      topAgentBody.innerHTML = '<tr><td colspan="4" class="empty-state"><em>No records found.</em></td></tr>';
-    } else {
-      topAgentBody.innerHTML = agentRows.map(a =>
-        `<tr><td>${a.name}</td><td>${a.calls}</td><td>${a.orders}</td><td class="cell-amount">${fmtMoney(a.revenue)}</td></tr>`
-      ).join('');
-    }
-
+    renderTopAgents(callLogs, delivered, profiles);
     // Recent Activity
-    const recent30 = callLogs.slice(0, 30);
-    const activityFeed = document.getElementById('activity-feed');
-    if (recent30.length === 0) {
-      activityFeed.innerHTML = '<div class="empty-state"><em>No recent activity.</em></div>';
-    } else {
-      const dotColor = outcome => {
-        if (['answered','ordered','interested'].includes(outcome)) return '#1D9E75';
-        if (['declined','angry'].includes(outcome)) return '#E24B4A';
-        if (['callback_requested'].includes(outcome)) return '#D97B2A';
-        return '#888070';
-      };
-      activityFeed.innerHTML = recent30.map(c => {
-        const color = dotColor(c.outcome);
-        const custName = c.customers?.full_name || '—';
-        const agentName = c.profiles?.full_name || '—';
-        const outcomeLabel = STATUS_LABELS[c.outcome] || c.outcome;
-        const ts = c.call_date ? fmtDate(c.call_date) : '—';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:0.5px solid var(--ml-border);">
-          <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
-          <span style="flex:1;">${custName} <span style="color:var(--ml-muted);">— ${outcomeLabel} · by ${agentName} · ${ts}</span></span>
-        </div>`;
-      }).join('');
-    }
+    renderRecentActivity(callLogs);
 
   } catch (err) {
     console.error('Dashboard error:', err);
     showToast('Failed to load dashboard data', 'error');
   }
-})();
+}
+
+function setKpi(id, value, label, sub, icon) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="stat-label">${label}</div>
+      <span style="font-size:18px;opacity:0.4;">${icon || ''}</span>
+    </div>
+    <div class="stat-value" style="margin:8px 0 4px;">${value}</div>
+    <div style="font-size:11px;color:var(--ml-muted);">${sub || ''}</div>
+  `;
+}
+
+function hiddenKpi(label) {
+  return `<div class="stat-label">${label}</div>
+    <div class="stat-value" style="filter:blur(8px);user-select:none;">₦██████</div>`;
+}
+
+function renderRevenueByProduct(delivered, productMap) {
+  const el = document.getElementById('rev-by-product');
+  if (!el) return;
+  const map = {};
+  delivered.forEach(d => {
+    const items = Array.isArray(d.items) && d.items.length > 0 ? d.items : null;
+    if (items) {
+      items.forEach(it => {
+        const p = productMap[it.product_id];
+        const name = p ? p.name : 'Unknown';
+        if (!map[name]) map[name] = { units: 0, revenue: 0 };
+        map[name].units += Number(it.qty || 1);
+        map[name].revenue += Number(it.sale_price || 0) * Number(it.qty || 1) || 0;
+      });
+    } else {
+      const p = productMap[d.product_id];
+      const name = p ? p.name : 'Unknown';
+      if (!map[name]) map[name] = { units: 0, revenue: 0 };
+      map[name].units += Number(d.quantity || 1);
+      map[name].revenue += Number(d.sale_price || 0);
+    }
+  });
+  const total = Object.values(map).reduce((s, v) => s + v.revenue, 0);
+  const rows = Object.entries(map).sort((a, b) => b[1].revenue - a[1].revenue);
+  const rowsHtml = rows.length > 0
+    ? rows.map(([name, v]) => `<tr>
+        <td>${name}</td>
+        <td>${v.units}</td>
+        <td class="cell-amount">${fmtMoney(v.revenue)}</td>
+        <td>${total > 0 ? (v.revenue / total * 100).toFixed(1) + '%' : '0%'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center;color:var(--ml-muted);font-style:italic;padding:24px;">No delivered orders yet.</td></tr>`;
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>PRODUCT</th><th>UNITS</th><th>REVENUE</th><th>% OF TOTAL</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+}
+
+function renderRevenueByTier(delivered, customers) {
+  const el = document.getElementById('rev-by-tier');
+  if (!el) return;
+  const custMap = {};
+  customers.forEach(c => { custMap[c.id] = c; });
+  const tiers = { A: { orders: 0, revenue: 0, custTotal: 0, custDelivered: new Set() },
+                  B: { orders: 0, revenue: 0, custTotal: 0, custDelivered: new Set() },
+                  C: { orders: 0, revenue: 0, custTotal: 0, custDelivered: new Set() } };
+  customers.forEach(c => { const t = calcTier(c.order_date); if (tiers[t]) tiers[t].custTotal++; });
+  delivered.forEach(d => {
+    const c = custMap[d.customer_id];
+    if (!c) return;
+    const t = calcTier(c.order_date);
+    if (tiers[t]) {
+      tiers[t].orders++;
+      tiers[t].revenue += Number(d.sale_price || 0);
+      tiers[t].custDelivered.add(d.customer_id);
+    }
+  });
+  const rowsHtml = ['A', 'B', 'C'].map(t => {
+    const r = tiers[t];
+    const conv = r.custTotal > 0 ? (r.custDelivered.size / r.custTotal * 100).toFixed(1) + '%' : '—';
+    return `<tr><td>${tierBadge(t)}</td><td>${r.orders}</td><td class="cell-amount">${fmtMoney(r.revenue)}</td><td>${conv}</td></tr>`;
+  }).join('');
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>TIER</th><th>ORDERS</th><th>REVENUE</th><th>CONVERSION</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+}
+
+function renderTopAgents(callLogs, delivered, profiles) {
+  const el = document.getElementById('top-agents');
+  if (!el) return;
+  const agentMap = {};
+  profiles.filter(p => p.role === 'crs_agent').forEach(p => {
+    agentMap[p.id] = { name: p.full_name || p.id, calls: 0, orders: 0, revenue: 0 };
+  });
+  callLogs.forEach(c => { if (agentMap[c.agent_id]) agentMap[c.agent_id].calls++; });
+  delivered.forEach(d => {
+    const aid = d.agent_id || d.logged_by;
+    if (agentMap[aid]) {
+      agentMap[aid].orders++;
+      agentMap[aid].revenue += Number(d.sale_price || 0);
+    }
+  });
+  const sorted = Object.values(agentMap).sort((a, b) => b.revenue - a.revenue || b.calls - a.calls);
+  const rowsHtml = sorted.length > 0
+    ? sorted.map(a => `<tr>
+        <td><span style="color:var(--ml-gold);">${a.name}</span></td>
+        <td>${a.calls}</td>
+        <td>${a.orders}</td>
+        <td class="cell-amount">${fmtMoney(a.revenue)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center;color:var(--ml-muted);font-style:italic;padding:24px;">No agent activity yet.</td></tr>`;
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>AGENT</th><th>CALLS</th><th>ORDERS</th><th>REVENUE</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>`;
+}
+
+function renderRecentActivity(callLogs) {
+  const el = document.getElementById('recent-activity');
+  if (!el) return;
+  const recent = callLogs.slice(0, 20);
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty-state"><em>No activity yet.</em></div>`;
+    return;
+  }
+  const outcomeColor = {
+    answered: '#5DCAA5', ordered: '#E8B84B', interested: '#EF9F27',
+    declined: '#F09595', angry: '#F09595', no_answer: '#888070',
+    callback_requested: '#888070', wrong_number: '#888070'
+  };
+  el.innerHTML = recent.map(c => {
+    const color = outcomeColor[c.outcome] || '#888070';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--ml-border);">
+      <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+      <div style="flex:1;">
+        <span style="color:var(--ml-white);font-weight:400;">${c.customers?.full_name || '—'}</span>
+        <span style="color:var(--ml-muted);"> — </span>
+        <span style="color:${color};">${statusLabel(c.outcome)}</span>
+        <div style="font-size:11px;color:var(--ml-muted);margin-top:2px;">by ${c.profiles?.full_name || '—'} · ${fmtDate(c.call_date)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+init();

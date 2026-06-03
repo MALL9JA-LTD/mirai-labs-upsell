@@ -8,14 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
-  <style>
-    .product-card { background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
-    .product-card-name { font-family:var(--ff-display); font-size:22px; font-weight:300; }
-    .product-card-sku { font-size:11px; color:var(--ml-muted); }
-    .product-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:14px 0; }
-    .product-stat label { font-size:9px; text-transform:uppercase; letter-spacing:0.12em; color:var(--ml-gold-dim); display:block; margin-bottom:2px; }
-    .product-stat span { font-size:14px; font-weight:500; }
-  </style>
 </head>
 <body>
   <div class="app">
@@ -34,18 +26,20 @@
         <div class="page-header">
           <div>
             <div class="page-title">Inventory</div>
-            <div class="page-subtitle">Manage products and dispatch stock to delivery staff</div>
+            <div class="page-subtitle">Manage products and dispatch stock to delivery staff.</div>
           </div>
           <button class="btn-primary" id="btn-add-product">+ Add Product</button>
         </div>
 
         <!-- Products Section -->
         <div class="section-label">PRODUCTS</div>
-        <div id="products-grid"><em style="color:var(--ml-muted);">Loading…</em></div>
+        <div id="products-grid" style="margin-bottom:24px;">
+          <div class="empty-state"><em>Loading…</em></div>
+        </div>
 
         <!-- Stock by Delivery Staff -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;margin-top:24px;">
-          <div class="section-label" style="margin:0;">STOCK BY DELIVERY STAFF</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="section-label" style="margin:0;flex:1;">STOCK BY DELIVERY STAFF</div>
           <span style="font-size:11px;color:var(--ml-muted);">Sent → Delivered = On Hand</span>
         </div>
         <div class="card" style="margin-bottom:24px;">
@@ -57,7 +51,7 @@
           </div>
         </div>
 
-        <!-- Dispatch Form -->
+        <!-- Dispatch Stock Form -->
         <div class="section-label">DISPATCH STOCK</div>
         <div class="card" style="margin-bottom:24px;">
           <form id="dispatch-form">
@@ -78,7 +72,7 @@
               </div>
               <div class="form-group">
                 <label>Notes</label>
-                <input type="text" id="dispatch-notes" placeholder="Optional notes" />
+                <textarea id="dispatch-notes" rows="2" placeholder="Optional notes" style="min-height:40px;"></textarea>
               </div>
             </div>
             <button type="submit" class="btn-primary" id="dispatch-btn">Record Dispatch</button>
@@ -90,8 +84,12 @@
         <div class="card">
           <div class="table-wrapper">
             <table class="data-table">
-              <thead><tr><th>DATE</th><th>ADMIN</th><th>DELIVERY STAFF</th><th>PRODUCT</th><th>QTY</th><th>NOTES</th><th>ACTIONS</th></tr></thead>
-              <tbody id="dispatch-body"><tr><td colspan="7" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              <thead>
+                <tr><th>DATE</th><th>ADMIN</th><th>DELIVERY STAFF</th><th>PRODUCT</th><th>QTY</th><th>NOTES</th><th>ACTIONS</th></tr>
+              </thead>
+              <tbody id="dispatch-body">
+                <tr><td colspan="7" class="empty-state"><em>Loading…</em></td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -129,11 +127,9 @@
             <input type="number" id="p-cost" min="0" value="0" />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Total Stock</label>
-            <input type="number" id="p-stock" min="0" value="0" />
-          </div>
+        <div class="form-group" style="max-width:200px;">
+          <label>Total Stock</label>
+          <input type="number" id="p-stock" min="0" value="0" />
         </div>
       </div>
       <div class="modal-footer">

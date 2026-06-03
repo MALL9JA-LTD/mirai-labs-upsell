@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <style>
     .tab-bar { display:flex; gap:0; border-bottom:0.5px solid var(--ml-border); margin-bottom:16px; }
-    .tab-btn { padding:8px 18px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--ml-muted); border-bottom:2px solid transparent; }
+    .tab-btn { padding:8px 20px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--ml-muted); border-bottom:2px solid transparent; letter-spacing:0.05em; }
     .tab-btn.active { color:var(--ml-gold); border-bottom-color:var(--ml-gold); }
     .tab-pane { display:none; }
     .tab-pane.active { display:block; }
@@ -33,16 +33,16 @@
         <div class="page-header">
           <div>
             <div class="page-title">Agents</div>
-            <div class="page-subtitle">Manage CRS team members and delivery staff</div>
+            <div class="page-subtitle">Manage CRS and delivery agents.</div>
           </div>
           <div style="display:flex;gap:8px;">
-            <button class="btn-primary" id="btn-add-delivery-staff">+ Add Delivery Staff</button>
-            <button class="btn-outline" id="btn-add-crs">+ Add CRS Agent</button>
+            <button class="btn-outline" id="btn-add-delivery-staff">+ Add Delivery Staff</button>
+            <button class="btn-primary" id="btn-add-crs">+ Add CRS Agent</button>
           </div>
         </div>
 
         <div class="tab-bar">
-          <button class="tab-btn active" data-tab="team">Team</button>
+          <button class="tab-btn active" data-tab="team">Team (CRS + Admin)</button>
           <button class="tab-btn" data-tab="delivery">Delivery Staff</button>
         </div>
 

@@ -9,33 +9,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    .calls-split { display:flex; gap:0; flex:1; overflow:hidden; }
-    .queue-panel { width:280px; flex-shrink:0; display:flex; flex-direction:column; border-right:0.5px solid var(--ml-border); overflow:hidden; }
-    .queue-panel-filters { padding:12px; border-bottom:0.5px solid var(--ml-border); }
-    .queue-panel-filters input, .queue-panel-filters select { width:100%; margin-bottom:6px; padding:6px 10px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-sm); color:var(--ml-white); font-size:12px; }
-    .queue-panel-filters input:last-child, .queue-panel-filters select:last-child { margin-bottom:0; }
+    .calls-split { display:flex; flex:1; gap:0; overflow:hidden; }
+    .queue-panel { width:300px; flex-shrink:0; display:flex; flex-direction:column; border-right:0.5px solid var(--ml-border); overflow:hidden; }
+    .queue-panel-filters { padding:12px; border-bottom:0.5px solid var(--ml-border); display:flex; flex-direction:column; gap:6px; }
+    .queue-panel-filters input,
+    .queue-panel-filters select { width:100%; padding:6px 10px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-sm); color:var(--ml-white); font-size:12px; outline:none; }
+    .queue-panel-filters input:focus,
+    .queue-panel-filters select:focus { border-color:var(--ml-gold); }
     .queue-list { flex:1; overflow-y:auto; }
-    .queue-item { padding:10px 12px; border-bottom:0.5px solid var(--ml-border); cursor:pointer; transition:background 0.1s; }
-    .queue-item:hover { background:var(--ml-surface3); }
+    .queue-item { padding:10px 14px; border-bottom:0.5px solid var(--ml-border); cursor:pointer; transition:background 0.1s; }
+    .queue-item:hover { background:rgba(201,146,42,0.06); }
     .queue-item.selected { background:rgba(201,146,42,0.12); border-left:2px solid var(--ml-gold); }
-    .queue-item-name { font-weight:500; font-size:13px; }
-    .queue-item-sub { font-size:11px; color:var(--ml-muted); margin-top:2px; }
+    .queue-item-name { font-weight:400; font-size:13px; color:var(--ml-white); }
+    .queue-item-sub { font-size:11px; color:var(--ml-muted); margin-top:2px; margin-bottom:5px; }
     .record-panel { flex:1; overflow-y:auto; padding:24px; }
-    .record-empty { display:flex; align-items:center; justify-content:center; height:100%; }
-    .record-name { font-family:var(--ff-display); font-size:24px; font-weight:300; margin-bottom:4px; }
+    .record-empty { display:flex; align-items:center; justify-content:center; height:100%; color:var(--ml-muted); font-style:italic; }
+    .record-name { font-family:var(--ff-display); font-size:28px; font-weight:300; margin-bottom:2px; }
     .record-phone { font-size:13px; color:var(--ml-muted); margin-bottom:16px; }
-    .record-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
-    .record-field label { font-size:9px; text-transform:uppercase; letter-spacing:0.12em; color:var(--ml-gold-dim); display:block; margin-bottom:2px; }
+    .record-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:20px; }
+    .record-field label { font-size:9px; text-transform:uppercase; letter-spacing:0.15em; color:var(--ml-gold-dim); display:block; margin-bottom:3px; }
     .record-field span { font-size:13px; }
     #order-section { display:none; }
-    .call-rate-bar { display:flex; flex-wrap:wrap; gap:6px; padding:10px 0; margin-bottom:12px; }
-    .call-rate-pill { padding:3px 10px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-pill); font-size:11px; color:var(--ml-muted); }
-    .call-rate-pill strong { color:var(--ml-white); }
-    .tab-bar { display:flex; gap:0; border-bottom:0.5px solid var(--ml-border); margin-bottom:16px; }
-    .tab-btn { padding:8px 18px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--ml-muted); border-bottom:2px solid transparent; }
+    .tab-bar { display:flex; gap:0; border-bottom:0.5px solid var(--ml-border); margin-bottom:0; flex-shrink:0; }
+    .tab-btn { padding:8px 20px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--ml-muted); border-bottom:2px solid transparent; letter-spacing:0.05em; }
     .tab-btn.active { color:var(--ml-gold); border-bottom-color:var(--ml-gold); }
     .tab-pane { display:none; }
     .tab-pane.active { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+    .tab-pane-scroll { flex:1; overflow-y:auto; padding:16px 24px; }
   </style>
 </head>
 <body>
@@ -48,69 +48,73 @@
         <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
       </div>
     </header>
-    <div class="app-body" style="flex-direction:column;overflow:hidden;">
+    <div class="app-body" style="overflow:hidden;">
       <aside class="sidebar"><nav id="sidebar-nav"></nav></aside>
-      <div style="display:flex;flex:1;overflow:hidden;">
-        <aside class="sidebar"><nav id="sidebar-nav-placeholder"></nav></aside>
-        <main class="main-content page-enter" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+      <main class="main-content page-enter" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
 
-          <div class="page-header" style="padding:16px 24px 12px;flex-shrink:0;">
-            <div>
-              <div class="page-title">Calls &amp; Orders</div>
-              <div class="page-subtitle">Log customer interactions and orders</div>
-            </div>
+        <div class="page-header" style="padding:16px 24px 0;flex-shrink:0;margin-bottom:0;">
+          <div>
+            <div class="page-title">Calls</div>
+            <div class="page-subtitle">Prioritised by tier. Call top, log outcome, repeat.</div>
           </div>
+        </div>
 
-          <!-- Call Rate Bar (admin only) -->
-          <div id="call-rate-section" style="display:none;padding:0 24px;flex-shrink:0;">
-            <div class="call-rate-bar" id="call-rate-bar"></div>
+        <!-- Call Rate Bar (admin) -->
+        <div id="call-rate-section" style="display:none;padding:0 24px;flex-shrink:0;">
+          <div class="call-rate-bar">
+            <span style="font-size:12px;color:var(--ml-muted);font-weight:400;">Call rate:</span>
+            <div id="call-rate-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
           </div>
+        </div>
 
-          <!-- Tabs -->
-          <div style="padding:0 24px;flex-shrink:0;">
-            <div class="tab-bar">
-              <button class="tab-btn active" data-tab="queue">Customer Queue</button>
-              <button class="tab-btn" data-tab="activity">My Activity</button>
-            </div>
+        <!-- Tabs -->
+        <div style="padding:0 24px;flex-shrink:0;border-bottom:0.5px solid var(--ml-border);">
+          <div class="tab-bar" style="border-bottom:none;">
+            <button class="tab-btn active" data-tab="queue">Customer Queue</button>
+            <button class="tab-btn" data-tab="activity">My Activity</button>
           </div>
+        </div>
 
-          <!-- Queue Tab -->
-          <div class="tab-pane active" id="tab-queue" style="flex:1;overflow:hidden;">
-            <div class="calls-split" style="flex:1;overflow:hidden;">
-              <!-- Left Panel -->
-              <div class="queue-panel">
-                <div class="queue-panel-filters">
-                  <input type="text" id="q-search" placeholder="Search name or phone…" />
-                  <select id="q-tier">
-                    <option value="">All Tiers</option>
-                    <option value="A">Tier A</option>
-                    <option value="B">Tier B</option>
-                    <option value="C">Tier C</option>
-                  </select>
-                  <select id="q-status">
-                    <option value="">All Statuses</option>
-                    <option value="not_contacted">Not Contacted</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="interested">Interested</option>
-                    <option value="ordered_pending">Ordered Pending</option>
-                    <option value="delivered">Delivered</option>
-                  </select>
-                  <select id="q-agent" style="display:none;">
-                    <option value="">All Agents</option>
-                  </select>
-                  <div style="font-size:11px;color:var(--ml-muted);margin-top:4px;" id="q-count"></div>
-                </div>
-                <div class="queue-list" id="queue-list"><em style="padding:12px;display:block;color:var(--ml-muted);font-size:12px;">Loading…</em></div>
+        <!-- Queue Tab -->
+        <div class="tab-pane active" id="tab-queue" style="flex:1;overflow:hidden;">
+          <div class="calls-split" style="height:100%;">
+            <!-- Left Panel -->
+            <div class="queue-panel">
+              <div class="queue-panel-filters">
+                <input type="text" id="q-search" placeholder="Search name or phone…" />
+                <select id="q-tier">
+                  <option value="">All Tiers</option>
+                  <option value="A">Tier A</option>
+                  <option value="B">Tier B</option>
+                  <option value="C">Tier C</option>
+                </select>
+                <select id="q-status">
+                  <option value="">All Statuses</option>
+                  <option value="not_contacted">Not Contacted</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="interested">Interested</option>
+                  <option value="ordered_pending">Ordered Pending</option>
+                  <option value="delivered">Delivered</option>
+                </select>
+                <select id="q-agent" style="display:none;">
+                  <option value="">All Agents</option>
+                </select>
+                <div style="font-size:11px;color:var(--ml-muted);" id="q-count"></div>
               </div>
-              <!-- Right Panel -->
-              <div class="record-panel" id="record-panel">
-                <div class="record-empty"><em style="color:var(--ml-muted);">Select a customer to view their record.</em></div>
+              <div class="queue-list" id="queue-list">
+                <em style="padding:12px;display:block;color:var(--ml-muted);font-size:12px;">Loading…</em>
               </div>
             </div>
+            <!-- Right Panel -->
+            <div class="record-panel" id="record-panel">
+              <div class="record-empty">Select a customer to view their record.</div>
+            </div>
           </div>
+        </div>
 
-          <!-- Activity Tab -->
-          <div class="tab-pane" id="tab-activity" style="padding:0 24px;overflow-y:auto;">
+        <!-- Activity Tab -->
+        <div class="tab-pane" id="tab-activity">
+          <div class="tab-pane-scroll">
             <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
               <button class="btn-primary" id="btn-log-call-activity">+ Log New Call</button>
             </div>
@@ -123,13 +127,13 @@
               </div>
             </div>
           </div>
+        </div>
 
-        </main>
-      </div>
+      </main>
     </div>
   </div>
 
-  <!-- Log Call Modal -->
+  <!-- Log / Edit Call Modal -->
   <div class="modal-overlay" id="modal-call">
     <div class="modal modal-lg">
       <div class="modal-header">
@@ -169,30 +173,33 @@
           <textarea id="call-notes" rows="2" placeholder="Notes about this call…"></textarea>
         </div>
 
+        <!-- Order Details (shown when outcome = ordered) -->
         <div id="order-section">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ml-gold-dim);margin-bottom:12px;padding-top:8px;border-top:0.5px solid var(--ml-border);">Order Details</div>
-          <div id="items-container"></div>
-          <button type="button" class="btn-outline btn-sm" id="btn-add-item" style="margin-bottom:12px;">+ Add Item</button>
-          <div style="font-size:13px;font-weight:500;margin-bottom:12px;" id="running-total">Total: ₦0</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Delivery Staff</label>
-              <select id="delivery-staff"><option value="">— Select staff —</option></select>
+          <div class="order-section">
+            <div class="order-section-title">Order Details</div>
+            <div id="items-container"></div>
+            <button type="button" class="btn-outline btn-sm" id="btn-add-item" style="margin-bottom:12px;">+ Add Item</button>
+            <div class="running-total" id="running-total">Total: ₦0</div>
+            <div class="form-row" style="margin-top:12px;">
+              <div class="form-group">
+                <label>Delivery Staff</label>
+                <select id="delivery-staff"><option value="">— Select staff —</option></select>
+              </div>
+              <div class="form-group">
+                <label>Delivery Fee (₦)</label>
+                <input type="number" id="delivery-fee" value="0" min="0" />
+              </div>
             </div>
-            <div class="form-group">
-              <label>Delivery Fee (₦)</label>
-              <input type="number" id="delivery-fee" value="0" min="0" />
+            <div class="form-group" id="waybill-group" style="display:none;">
+              <label>Waybill Fee (₦)</label>
+              <input type="number" id="waybill-fee" value="0" min="0" />
             </div>
-          </div>
-          <div class="form-group" id="waybill-group" style="display:none;">
-            <label>Waybill Fee (₦)</label>
-            <input type="number" id="waybill-fee" value="0" min="0" />
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-call')">Cancel</button>
-        <button class="btn-primary" id="submit-call-btn">Save</button>
+        <button class="btn-primary" id="submit-call-btn">Save Call</button>
       </div>
     </div>
   </div>

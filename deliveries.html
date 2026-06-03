@@ -26,27 +26,27 @@
         <div class="page-header">
           <div>
             <div class="page-title">Deliveries</div>
-            <div class="page-subtitle">Track and manage all delivery orders</div>
+            <div class="page-subtitle">Track and manage all delivery orders.</div>
           </div>
           <button class="btn-primary" id="btn-new-delivery">+ New Pending Delivery</button>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
-          <div class="kpi-card">
-            <div class="kpi-label">Pending</div>
-            <div class="kpi-value" id="sum-pending">—</div>
-            <div class="kpi-sub" id="sum-pending-val"></div>
+        <!-- 3 Summary stat cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+          <div class="stat-card" id="sum-pending-card">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="sum-pending">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);" id="sum-pending-val"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Delivered</div>
-            <div class="kpi-value" id="sum-delivered">—</div>
-            <div class="kpi-sub" id="sum-delivered-val"></div>
+          <div class="stat-card" id="sum-delivered-card">
+            <div class="stat-label">Delivered</div>
+            <div class="stat-value" id="sum-delivered">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);" id="sum-delivered-val"></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Failed / Returned</div>
-            <div class="kpi-value" id="sum-failed">—</div>
-            <div class="kpi-sub" id="sum-failed-val"></div>
+          <div class="stat-card" id="sum-failed-card">
+            <div class="stat-label">Failed / Returned</div>
+            <div class="stat-value" id="sum-failed">—</div>
+            <div style="font-size:11px;color:var(--ml-muted);" id="sum-failed-val"></div>
           </div>
         </div>
 
@@ -55,17 +55,17 @@
           <div class="search-box">
             <input type="text" id="search-input" placeholder="Search customer name or phone…" />
           </div>
-          <select id="filter-status">
+          <select id="filter-status" style="padding:8px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:var(--radius-sm);color:var(--ml-white);font-size:12px;">
             <option value="pending">Pending only</option>
+            <option value="">All</option>
             <option value="delivered">Delivered</option>
             <option value="failed">Failed</option>
             <option value="returned">Returned</option>
-            <option value="">All</option>
           </select>
-          <select id="filter-staff">
+          <select id="filter-staff" style="padding:8px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:var(--radius-sm);color:var(--ml-white);font-size:12px;">
             <option value="">All Delivery Staff</option>
           </select>
-          <select id="filter-crs">
+          <select id="filter-crs" style="padding:8px 10px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:var(--radius-sm);color:var(--ml-white);font-size:12px;">
             <option value="">All CRS</option>
           </select>
         </div>
@@ -112,8 +112,8 @@
         </div>
         <div id="d-items-container"></div>
         <button type="button" class="btn-outline btn-sm" id="d-add-item" style="margin-bottom:10px;">+ Add Item</button>
-        <div style="font-size:13px;font-weight:500;margin-bottom:10px;" id="d-running-total">Total: ₦0</div>
-        <div class="form-row">
+        <div class="running-total" id="d-running-total">Total: ₦0</div>
+        <div class="form-row" style="margin-top:12px;">
           <div class="form-group">
             <label>Delivery Staff</label>
             <select id="d-staff"><option value="">— Select staff —</option></select>
