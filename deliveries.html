@@ -11,7 +11,6 @@
 </head>
 <body>
   <div class="app">
-    <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
       <div class="topbar-right">
@@ -20,13 +19,8 @@
         <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
       </div>
     </header>
-    <!-- BODY -->
     <div class="app-body">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <nav id="sidebar-nav"></nav>
-      </aside>
-      <!-- MAIN -->
+      <aside class="sidebar"><nav id="sidebar-nav"></nav></aside>
       <main class="main-content page-enter">
 
         <div class="page-header">
@@ -34,48 +28,129 @@
             <div class="page-title">Deliveries</div>
             <div class="page-subtitle">Track and manage all delivery orders</div>
           </div>
+          <button class="btn-primary" id="btn-new-delivery">+ New Pending Delivery</button>
         </div>
 
-        <!-- Status Tab Pills -->
-        <div class="tab-pills">
-          <button class="tab-pill active" data-status="">All</button>
-          <button class="tab-pill" data-status="pending">Pending</button>
-          <button class="tab-pill" data-status="delivered">Delivered</button>
-          <button class="tab-pill" data-status="failed">Failed</button>
-          <button class="tab-pill" data-status="returned">Returned</button>
+        <!-- Summary Cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+          <div class="kpi-card">
+            <div class="kpi-label">Pending</div>
+            <div class="kpi-value" id="sum-pending">—</div>
+            <div class="kpi-sub" id="sum-pending-val"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Delivered</div>
+            <div class="kpi-value" id="sum-delivered">—</div>
+            <div class="kpi-sub" id="sum-delivered-val"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Failed / Returned</div>
+            <div class="kpi-value" id="sum-failed">—</div>
+            <div class="kpi-sub" id="sum-failed-val"></div>
+          </div>
         </div>
 
-        <!-- Toolbar -->
+        <!-- Filter bar -->
         <div class="filter-bar">
           <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search customer or product…" />
+            <input type="text" id="search-input" placeholder="Search customer name or phone…" />
           </div>
+          <select id="filter-status">
+            <option value="pending">Pending only</option>
+            <option value="delivered">Delivered</option>
+            <option value="failed">Failed</option>
+            <option value="returned">Returned</option>
+            <option value="">All</option>
+          </select>
+          <select id="filter-staff">
+            <option value="">All Delivery Staff</option>
+          </select>
+          <select id="filter-crs">
+            <option value="">All CRS</option>
+          </select>
         </div>
 
         <div class="card">
           <div class="table-wrapper">
-            <table>
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th>Customer</th>
-                  <th>Product</th>
-                  <th>Qty</th>
-                  <th>Sale Price</th>
-                  <th>Delivery Staff</th>
-                  <th>Status</th>
-                  <th>Delivery Date</th>
-                  <th>Actions</th>
+                  <th>DATE</th><th>CUSTOMER</th><th>STATE</th><th>ITEMS</th>
+                  <th>TOTAL ₦</th><th>STATUS</th><th>DELIVERY STAFF</th><th>LOGGED BY</th><th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody id="deliveries-body">
-                <tr class="loading-row"><td colspan="8"><span class="spinner"></span></td></tr>
+                <tr><td colspan="9" class="empty-state"><em>Loading…</em></td></tr>
               </tbody>
             </table>
           </div>
+          <div style="padding:10px 16px;font-size:12px;color:var(--ml-muted);" id="row-count"></div>
           <div class="pagination" id="pagination"></div>
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- New / Edit Delivery Modal -->
+  <div class="modal-overlay" id="modal-delivery">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title" id="delivery-modal-title">New Pending Delivery</div>
+        <button class="modal-close" onclick="closeModal('modal-delivery')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="delivery-id" />
+        <div class="form-group">
+          <label>Customer *</label>
+          <div class="autocomplete-wrapper">
+            <input type="text" id="d-cust-search" placeholder="Type name or phone…" autocomplete="off" />
+            <div class="autocomplete-list" id="d-cust-list" style="display:none;"></div>
+          </div>
+          <input type="hidden" id="d-cust-id" />
+          <div id="d-cust-info" style="font-size:12px;color:var(--ml-muted);margin-top:4px;"></div>
+        </div>
+        <div id="d-items-container"></div>
+        <button type="button" class="btn-outline btn-sm" id="d-add-item" style="margin-bottom:10px;">+ Add Item</button>
+        <div style="font-size:13px;font-weight:500;margin-bottom:10px;" id="d-running-total">Total: ₦0</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Delivery Staff</label>
+            <select id="d-staff"><option value="">— Select staff —</option></select>
+          </div>
+          <div class="form-group">
+            <label>Delivery Fee (₦)</label>
+            <input type="number" id="d-delivery-fee" value="0" min="0" />
+          </div>
+        </div>
+        <div class="form-group" id="d-waybill-group" style="display:none;">
+          <label>Waybill Fee (₦)</label>
+          <input type="number" id="d-waybill-fee" value="0" min="0" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="d-status">
+              <option value="pending">Pending</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+              <option value="returned">Returned</option>
+            </select>
+          </div>
+          <div class="form-group" id="d-crs-group">
+            <label>CRS Agent</label>
+            <select id="d-crs"><option value="">— Select agent —</option></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="d-notes" rows="2" placeholder="Optional notes…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-delivery')">Cancel</button>
+        <button class="btn-primary" id="save-delivery-btn">Save</button>
+      </div>
     </div>
   </div>
 

@@ -8,10 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .crs-perf-table th, .crs-perf-table td { font-size:12px; }
+    .bulk-bar { display:none; align-items:center; gap:10px; padding:8px 16px; background:var(--ml-surface3); border:0.5px solid var(--ml-border); border-radius:var(--radius-md); margin-bottom:12px; }
+    .bulk-bar.visible { display:flex; }
+  </style>
 </head>
 <body>
   <div class="app">
-    <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
       <div class="topbar-right">
@@ -20,13 +24,8 @@
         <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
       </div>
     </header>
-    <!-- BODY -->
     <div class="app-body">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <nav id="sidebar-nav"></nav>
-      </aside>
-      <!-- MAIN -->
+      <aside class="sidebar"><nav id="sidebar-nav"></nav></aside>
       <main class="main-content page-enter">
 
         <div class="page-header">
@@ -34,9 +33,32 @@
             <div class="page-title">Customers</div>
             <div class="page-subtitle">Manage and view all customer records</div>
           </div>
-          <div style="display:flex;gap:8px;" id="admin-actions">
-            <button class="btn-outline" id="btn-import-csv">Import CSV</button>
+          <div style="display:flex;gap:8px;" id="header-actions">
             <button class="btn-primary" id="btn-add-customer">+ Add Customer</button>
+            <button class="btn-outline" id="btn-export-csv">Export CSV</button>
+            <button class="btn-outline" id="btn-auto-distribute">Auto-Distribute</button>
+            <button class="btn-outline" id="btn-import-csv">Import CSV</button>
+          </div>
+        </div>
+
+        <!-- CRS Performance (admin only) -->
+        <div id="crs-perf-section" style="display:none;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+            <div class="section-label" style="margin:0;">CRS PERFORMANCE</div>
+            <button class="btn-ghost btn-sm" id="btn-toggle-perf">Hide</button>
+          </div>
+          <div class="card" id="crs-perf-card">
+            <div class="table-wrapper">
+              <table class="data-table crs-perf-table">
+                <thead>
+                  <tr>
+                    <th>CRS</th><th>Total</th><th>Not Contacted</th><th>Contacted No Order</th>
+                    <th>Interested</th><th>Ordered Pending</th><th>Delivered</th><th>Failed/Returned</th><th>Conv %</th>
+                  </tr>
+                </thead>
+                <tbody id="perf-body"><tr><td colspan="9" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -45,95 +67,99 @@
           <div class="search-box">
             <input type="text" id="search-input" placeholder="Search name or phone…" />
           </div>
-          <select id="filter-agent" class="btn btn-secondary" style="padding:8px 12px;" title="Filter by agent">
-            <option value="">All Agents</option>
-          </select>
-          <select id="filter-tier" class="btn btn-secondary" style="padding:8px 12px;">
+          <select id="filter-tier">
             <option value="">All Tiers</option>
             <option value="A">Tier A</option>
             <option value="B">Tier B</option>
             <option value="C">Tier C</option>
           </select>
+          <select id="filter-status">
+            <option value="">Any Campaign Status</option>
+            <option value="not_contacted">Not Contacted</option>
+            <option value="contacted">Contacted</option>
+            <option value="interested">Interested</option>
+            <option value="ordered_pending">Ordered Pending</option>
+            <option value="delivered">Delivered</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select id="filter-agent">
+            <option value="">All Agents</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ml-muted);">
+            <input type="checkbox" id="filter-website" /> Website orders
+          </label>
         </div>
 
-        <!-- Customers Table -->
+        <!-- Bulk bar -->
+        <div class="bulk-bar" id="bulk-bar">
+          <span id="bulk-count">0 selected</span>
+          <span id="select-all-link" style="color:var(--ml-gold);cursor:pointer;font-size:12px;">Select all matching filter</span>
+          <span style="color:var(--ml-muted);">|</span>
+          <span style="font-size:12px;">Assign to:</span>
+          <select id="bulk-agent-select" style="padding:4px 8px;font-size:12px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
+            <option value="">— Select agent —</option>
+          </select>
+          <button class="btn-primary btn-sm" id="bulk-assign-btn">Assign</button>
+        </div>
+
         <div class="card">
           <div class="table-wrapper">
-            <table>
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>State</th>
-                  <th>Tier</th>
-                  <th>Assigned Agent</th>
-                  <th>Last Outcome</th>
-                  <th>Original Product</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th style="width:36px;"><input type="checkbox" id="chk-all" /></th>
+                  <th>NAME</th><th>PHONE</th><th>STATE</th><th>ORDER DATE</th>
+                  <th>TIER</th><th>ASSIGNED AGENT</th><th>LAST CALL</th><th>STATUS</th><th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody id="customers-body">
-                <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
+                <tr><td colspan="10" class="empty-state"><em>Loading…</em></td></tr>
               </tbody>
             </table>
           </div>
+          <div style="padding:10px 16px;font-size:12px;color:var(--ml-muted);" id="row-count"></div>
           <div class="pagination" id="pagination"></div>
-        </div>
-
-        <!-- CRS Performance (admin only) -->
-        <div id="crs-performance" style="display:none;">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Agent Performance</div>
-            </div>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Agent</th>
-                    <th>Customers</th>
-                    <th>Calls Made</th>
-                    <th>Orders</th>
-                    <th>Delivered</th>
-                    <th>Conversion %</th>
-                  </tr>
-                </thead>
-                <tbody id="performance-body">
-                  <tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
       </main>
     </div>
   </div>
 
-  <!-- Add / Edit Customer Modal -->
+  <!-- Add Customer Modal -->
   <div class="modal-overlay" id="modal-customer">
     <div class="modal">
       <div class="modal-header">
-        <div class="modal-title" id="customer-modal-title">Add Customer</div>
+        <div class="modal-title">Add Customer</div>
         <button class="modal-close" onclick="closeModal('modal-customer')">✕</button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="customer-id" />
+        <input type="hidden" id="cust-id" />
         <div class="form-row">
           <div class="form-group">
             <label>Full Name *</label>
-            <input type="text" id="c-name" placeholder="Jane Doe" required />
+            <input type="text" id="c-name" placeholder="Jane Doe" />
           </div>
           <div class="form-group">
             <label>Phone *</label>
-            <input type="tel" id="c-phone" placeholder="08012345678" required />
+            <input type="tel" id="c-phone" placeholder="08012345678" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>State</label>
-            <input type="text" id="c-state" placeholder="Lagos" />
+            <select id="c-state">
+              <option value="">— Select state —</option>
+              <option>Abia</option><option>Adamawa</option><option>Akwa Ibom</option><option>Anambra</option>
+              <option>Bauchi</option><option>Bayelsa</option><option>Benue</option><option>Borno</option>
+              <option>Cross River</option><option>Delta</option><option>Ebonyi</option><option>Edo</option>
+              <option>Ekiti</option><option>Enugu</option><option>FCT</option><option>Gombe</option>
+              <option>Imo</option><option>Jigawa</option><option>Kaduna</option><option>Kano</option>
+              <option>Katsina</option><option>Kebbi</option><option>Kogi</option><option>Kwara</option>
+              <option>Lagos</option><option>Nasarawa</option><option>Niger</option><option>Ogun</option>
+              <option>Ondo</option><option>Osun</option><option>Oyo</option><option>Plateau</option>
+              <option>Rivers</option><option>Sokoto</option><option>Taraba</option><option>Yobe</option>
+              <option>Zamfara</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Order Date</label>
@@ -146,14 +172,12 @@
         </div>
         <div class="form-group" id="assign-group">
           <label>Assign to Agent</label>
-          <select id="c-agent">
-            <option value="">— Unassigned —</option>
-          </select>
+          <select id="c-agent"><option value="">— Unassigned —</option></select>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-customer')">Cancel</button>
-        <button class="btn-primary" id="save-customer-btn">Save Customer</button>
+        <button class="btn-primary" id="save-cust-btn">Save Customer</button>
       </div>
     </div>
   </div>
@@ -166,24 +190,76 @@
         <button class="modal-close" onclick="closeModal('modal-csv')">✕</button>
       </div>
       <div class="modal-body">
-        <div class="info-banner">
+        <div class="info-banner" style="margin-bottom:14px;">
           <span class="info-icon">ℹ</span>
-          <div>
-            CSV columns (header row required):<br/>
-            <code>full_name, phone, state, order_date, original_product</code><br/>
-            Tier is calculated automatically from <code>order_date</code>.
-          </div>
+          <div>Columns required (header row): <code>full_name, phone, state, order_date, original_product</code>. Tier is calculated automatically.</div>
         </div>
         <div class="form-group">
           <label>CSV File</label>
           <input type="file" id="csv-file" accept=".csv" />
         </div>
-        <div id="csv-preview" style="margin-top:10px;font-size:12px;color:var(--ml-muted);"></div>
+        <div id="csv-preview" style="margin-top:8px;font-size:12px;color:var(--ml-muted);"></div>
         <div id="csv-error" class="form-error"></div>
       </div>
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-csv')">Cancel</button>
         <button class="btn-primary" id="import-csv-btn" disabled>Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call History Modal -->
+  <div class="modal-overlay" id="modal-call-history">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title" id="call-hist-title">Call History</div>
+        <button class="modal-close" onclick="closeModal('modal-call-history')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="call-hist-body"><em>Loading…</em></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-call-history')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Agent Modal -->
+  <div class="modal-overlay" id="modal-assign">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Assign Agent</div>
+        <button class="modal-close" onclick="closeModal('modal-assign')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="assign-cust-id" />
+        <div class="form-group">
+          <label>Agent</label>
+          <select id="assign-agent-select"><option value="">— Unassigned —</option></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-assign')">Cancel</button>
+        <button class="btn-primary" id="confirm-assign-btn">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auto-Distribute Modal -->
+  <div class="modal-overlay" id="modal-distribute">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Auto-Distribute Customers</div>
+        <button class="modal-close" onclick="closeModal('modal-distribute')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Select agents to distribute unassigned customers evenly among.</p>
+        <div id="distribute-agents-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="distribute-info" style="margin-top:12px;font-size:12px;color:var(--ml-muted);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-distribute')">Cancel</button>
+        <button class="btn-primary" id="confirm-distribute-btn">Distribute</button>
       </div>
     </div>
   </div>

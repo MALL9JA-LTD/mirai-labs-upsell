@@ -8,10 +8,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .tab-bar { display:flex; gap:0; border-bottom:0.5px solid var(--ml-border); margin-bottom:16px; }
+    .tab-btn { padding:8px 18px; font-size:12px; cursor:pointer; border:none; background:none; color:var(--ml-muted); border-bottom:2px solid transparent; }
+    .tab-btn.active { color:var(--ml-gold); border-bottom-color:var(--ml-gold); }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+  </style>
 </head>
 <body>
   <div class="app">
-    <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
       <div class="topbar-right">
@@ -20,39 +26,47 @@
         <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
       </div>
     </header>
-    <!-- BODY -->
     <div class="app-body">
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <nav id="sidebar-nav"></nav>
-      </aside>
-      <!-- MAIN -->
+      <aside class="sidebar"><nav id="sidebar-nav"></nav></aside>
       <main class="main-content page-enter">
 
         <div class="page-header">
           <div>
             <div class="page-title">Agents</div>
-            <div class="page-subtitle">Manage team members and their roles</div>
+            <div class="page-subtitle">Manage CRS team members and delivery staff</div>
           </div>
-          <button class="btn-primary" id="btn-invite-agent">+ Invite Agent</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" id="btn-add-delivery-staff">+ Add Delivery Staff</button>
+            <button class="btn-outline" id="btn-add-crs">+ Add CRS Agent</button>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="agents-body">
-                <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
-              </tbody>
-            </table>
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="team">Team</button>
+          <button class="tab-btn" data-tab="delivery">Delivery Staff</button>
+        </div>
+
+        <!-- Team Tab -->
+        <div class="tab-pane active" id="tab-team">
+          <div class="card">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead><tr><th>NAME</th><th>ROLE</th><th>CUSTOMERS</th><th>CALLS</th><th>ORDERS</th><th>REVENUE</th><th>ADDED</th><th>ACTIONS</th></tr></thead>
+                <tbody id="team-body"><tr><td colspan="8" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Staff Tab -->
+        <div class="tab-pane" id="tab-delivery">
+          <div class="card">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead><tr><th>NAME</th><th>PHONE</th><th>ACTIVE</th><th>ADDED</th><th>ACTIONS</th></tr></thead>
+                <tbody id="dstaff-body"><tr><td colspan="5" class="empty-state"><em>Loading…</em></td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -60,73 +74,79 @@
     </div>
   </div>
 
-  <!-- Invite Agent Modal -->
-  <div class="modal-overlay" id="modal-invite">
+  <!-- Add CRS Agent Modal -->
+  <div class="modal-overlay" id="modal-add-crs">
     <div class="modal modal-sm">
       <div class="modal-header">
-        <div class="modal-title">Invite New Agent</div>
-        <button class="modal-close" onclick="closeModal('modal-invite')">✕</button>
+        <div class="modal-title">Add CRS Agent</div>
+        <button class="modal-close" onclick="closeModal('modal-add-crs')">✕</button>
       </div>
       <div class="modal-body">
-        <div class="info-banner" style="margin-bottom:14px;">
-          <span class="info-icon">ℹ</span>
-          <div>A Supabase account will be created. The agent will receive a confirmation email if email confirmations are enabled.</div>
-        </div>
+        <div class="form-group"><label>Full Name *</label><input type="text" id="crs-name" placeholder="Jane Doe" /></div>
+        <div class="form-group"><label>Email *</label><input type="email" id="crs-email" placeholder="agent@example.com" /></div>
+        <div class="form-group"><label>Password *</label><input type="password" id="crs-password" placeholder="Min 8 characters" minlength="8" /></div>
         <div class="form-group">
-          <label>Full Name *</label>
-          <input type="text" id="invite-name" placeholder="Jane Doe" />
-        </div>
-        <div class="form-group">
-          <label>Email *</label>
-          <input type="email" id="invite-email" placeholder="agent@mirailabs.com" />
-        </div>
-        <div class="form-group">
-          <label>Initial Password *</label>
-          <input type="password" id="invite-password" placeholder="Min 8 characters" minlength="8" />
-        </div>
-        <div class="form-group">
-          <label>Role *</label>
-          <select id="invite-role">
+          <label>Role</label>
+          <select id="crs-role">
             <option value="crs_agent">CRS Agent</option>
-            <option value="delivery_staff">Delivery Staff</option>
             <option value="admin">Admin</option>
           </select>
         </div>
-        <div id="invite-error" class="form-error"></div>
+        <div id="crs-error" class="form-error"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-ghost" onclick="closeModal('modal-invite')">Cancel</button>
-        <button class="btn-primary" id="invite-btn">Create Account</button>
+        <button class="btn-ghost" onclick="closeModal('modal-add-crs')">Cancel</button>
+        <button class="btn-primary" id="save-crs-btn">Create Account</button>
       </div>
     </div>
   </div>
 
-  <!-- Edit Agent Modal -->
-  <div class="modal-overlay" id="modal-edit-agent">
+  <!-- Change Role Modal -->
+  <div class="modal-overlay" id="modal-change-role">
     <div class="modal modal-sm">
       <div class="modal-header">
-        <div class="modal-title">Edit Agent</div>
-        <button class="modal-close" onclick="closeModal('modal-edit-agent')">✕</button>
+        <div class="modal-title">Change Role</div>
+        <button class="modal-close" onclick="closeModal('modal-change-role')">✕</button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="edit-agent-id" />
+        <input type="hidden" id="change-role-id" />
         <div class="form-group">
-          <label>Full Name *</label>
-          <input type="text" id="edit-agent-name" />
-        </div>
-        <div class="form-group">
-          <label>Role *</label>
-          <select id="edit-agent-role">
+          <label>Role</label>
+          <select id="change-role-value">
             <option value="crs_agent">CRS Agent</option>
-            <option value="delivery_staff">Delivery Staff</option>
             <option value="admin">Admin</option>
           </select>
         </div>
-        <div id="edit-error" class="form-error"></div>
+        <div id="change-role-error" class="form-error"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-ghost" onclick="closeModal('modal-edit-agent')">Cancel</button>
-        <button class="btn-primary" id="save-agent-btn">Save Changes</button>
+        <button class="btn-ghost" onclick="closeModal('modal-change-role')">Cancel</button>
+        <button class="btn-primary" id="save-role-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Delivery Staff Modal -->
+  <div class="modal-overlay" id="modal-delivery-staff">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title" id="dstaff-modal-title">Add Delivery Staff</div>
+        <button class="modal-close" onclick="closeModal('modal-delivery-staff')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="dstaff-id" />
+        <div class="form-group"><label>Full Name *</label><input type="text" id="dstaff-name" placeholder="John Rider" /></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="dstaff-phone" placeholder="08012345678" /></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="dstaff-active" checked /> Active
+          </label>
+        </div>
+        <div id="dstaff-error" class="form-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-delivery-staff')">Cancel</button>
+        <button class="btn-primary" id="save-dstaff-btn">Save</button>
       </div>
     </div>
   </div>
