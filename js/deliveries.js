@@ -8,7 +8,7 @@ let dItemRows = [];
 (async () => {
   const profile = await requireAuth();
   if (!profile) return;
-  isAdmin = profile.role === 'admin';
+  isAdmin = ['admin','temp_admin','supervisor'].includes(profile.role);
 
   if (!isAdmin) {
     document.getElementById('filter-crs').style.display = 'none';
@@ -36,7 +36,7 @@ async function loadAll() {
       }),
       window._supabase.from('products').select('id,name,selling_price,cost_price').order('name'),
       window._supabase.from('delivery_staff').select('id,name,active').order('name'),
-      window._supabase.from('profiles').select('id,full_name,role').in('role',['admin','crs_agent']).order('full_name'),
+      window._supabase.from('profiles').select('id,full_name,role').order('full_name'),
       fetchAll((from, to) =>
         window._supabase.from('customers').select('id,full_name,phone,state,order_date').order('full_name').range(from, to)
       ),

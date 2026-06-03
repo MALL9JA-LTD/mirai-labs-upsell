@@ -3,7 +3,7 @@ let allProfiles = [], allDeliveryStaff = [], allCallLogs = [], allDeliveries = [
 (async () => {
   const profile = await requireAuth();
   if (!profile) return;
-  if (profile.role !== 'admin') {
+  if (!isAdminLevel(profile)) {
     document.querySelector('.main-content').innerHTML = '<div class="empty-state" style="padding:60px;"><em>Admin access only.</em></div>';
     return;
   }
@@ -12,7 +12,7 @@ let allProfiles = [], allDeliveryStaff = [], allCallLogs = [], allDeliveries = [
 })();
 
 async function loadAll() {
-  document.getElementById('team-body').innerHTML = '<tr><td colspan="8" class="empty-state"><em>Loading…</em></td></tr>';
+  document.getElementById('team-body').innerHTML = '<tr><td colspan="9" class="empty-state"><em>Loading…</em></td></tr>';
   document.getElementById('dstaff-body').innerHTML = '<tr><td colspan="5" class="empty-state"><em>Loading…</em></td></tr>';
 
   const [profiles, dstaff, callLogs, deliveries, customers] = await Promise.all([
@@ -34,17 +34,25 @@ async function loadAll() {
 }
 
 function roleBadge(role) {
-  const labels = { admin:'Admin', crs_agent:'CRS Agent' };
-  const cls = role === 'admin' ? 'badge-gold' : 'badge-neutral';
-  return `<span class="badge ${cls}">${labels[role]||role}</span>`;
+  const map = {
+    admin:      ['Admin',      'badge-gold'],
+    temp_admin: ['Temp Admin', 'badge-amber'],
+    supervisor: ['Supervisor', 'badge-tier-b'],
+    crs_agent:  ['CRS Agent',  'badge-neutral'],
+  };
+  const [label, cls] = map[role] || [role, 'badge-neutral'];
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 
 function renderTeam() {
   const tbody = document.getElementById('team-body');
   const myId = window._session?.user?.id;
+  const myRole = window._profile?.role;
+  const iAmMainAdmin = myRole === 'admin';
+  const iAmTempAdmin = myRole === 'temp_admin';
 
   if (allProfiles.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><em>No records found.</em></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><em>No records found.</em></td></tr>';
     return;
   }
 
@@ -54,6 +62,12 @@ function renderTeam() {
     const orderCount = allDeliveries.filter(d => d.agent_id === a.id).length;
     const revenue = allDeliveries.filter(d => d.agent_id===a.id&&d.status==='delivered').reduce((s,d) => s+Number(d.sale_price||0), 0);
     const isMe = a.id === myId;
+    const targetIsMainAdmin = a.role === 'admin';
+
+    // temp_admin cannot touch main admins; nobody can touch themselves
+    const canChangeThisRole = !isMe && (iAmMainAdmin || (iAmTempAdmin && !targetIsMainAdmin));
+    const canClearThisCustomers = (iAmMainAdmin || iAmTempAdmin) && custCount > 0;
+
     return `<tr>
       <td><strong>${a.full_name||'—'}</strong>${isMe?' <span style="font-size:11px;color:var(--ml-muted);">(you)</span>':''}</td>
       <td>${roleBadge(a.role)}</td>
@@ -64,11 +78,14 @@ function renderTeam() {
       <td>${fmtDate(a.created_at)}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;">
         <a href="/customers?agent=${a.id}" class="btn-ghost btn-sm">View</a>
-        ${!isMe ? `<button class="btn-ghost btn-sm" onclick="openChangeRole('${a.id}','${a.role}')">Change Role</button>` : ''}
+        ${canChangeThisRole ? `<button class="btn-ghost btn-sm" onclick="openChangeRole('${a.id}','${a.role}')">Change Role</button>` : ''}
+        ${canClearThisCustomers ? `<button class="btn-ghost btn-sm" style="color:var(--danger);" onclick="clearAgentCustomers('${a.id}','${escAttr(a.full_name||'this agent')}')">Clear Customers</button>` : ''}
       </td>
     </tr>`;
   }).join('');
 }
+
+function escAttr(str) { return str.replace(/'/g, "\\'"); }
 
 function renderDeliveryStaff() {
   const tbody = document.getElementById('dstaff-body');
@@ -89,8 +106,26 @@ function renderDeliveryStaff() {
 }
 
 function openChangeRole(id, currentRole) {
+  const myRole = window._profile?.role;
+  const iAmMainAdmin = myRole === 'admin';
+  const iAmTempAdmin = myRole === 'temp_admin';
+  const targetIsMainAdmin = currentRole === 'admin';
+
+  // Enforce: temp_admin cannot touch main admins
+  if (iAmTempAdmin && targetIsMainAdmin) {
+    showToast('You cannot change the main administrator\'s role.', 'error');
+    return;
+  }
+
+  // Enforce: temp_admin cannot promote anyone to admin
+  const roleSelect = document.getElementById('change-role-value');
+  // Show/hide the 'admin' option based on who is acting
+  Array.from(roleSelect.options).forEach(opt => {
+    if (opt.value === 'admin') opt.hidden = !iAmMainAdmin;
+  });
+
   document.getElementById('change-role-id').value = id;
-  document.getElementById('change-role-value').value = currentRole;
+  roleSelect.value = currentRole;
   document.getElementById('change-role-error').textContent = '';
   openModal('modal-change-role');
 }
@@ -100,6 +135,14 @@ async function saveRole() {
   const role = document.getElementById('change-role-value').value;
   const errEl = document.getElementById('change-role-error');
   const btn = document.getElementById('save-role-btn');
+  const myRole = window._profile?.role;
+
+  // Extra guard: only main admin can assign admin role
+  if (role === 'admin' && myRole !== 'admin') {
+    errEl.textContent = 'Only the main administrator can grant Admin role.';
+    return;
+  }
+
   btn.disabled=true; btn.textContent='Saving…';
   const { data, error } = await window._supabase.from('profiles').update({ role }).eq('id',id).select();
   btn.disabled=false; btn.textContent='Save';
@@ -110,7 +153,23 @@ async function saveRole() {
   await loadAll();
 }
 
+async function clearAgentCustomers(agentId, agentName) {
+  if (!confirm(`Remove all customer assignments from ${agentName}?\n\nThese customers will become unassigned and available for redistribution.`)) return;
+  const { error } = await window._supabase
+    .from('customers')
+    .update({ assigned_to: null })
+    .eq('assigned_to', agentId);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast(`All customers unassigned from ${agentName}`);
+  await loadAll();
+}
+
 async function createCrsAgent() {
+  // Only main admin and temp_admin can create accounts; but temp_admin can't — invite is main admin only
+  // Actually we allow temp_admin to create too — they just can't assign admin role
+  const myRole = window._profile?.role;
+  if (!['admin','temp_admin'].includes(myRole)) { showToast('Permission denied','error'); return; }
+
   const full_name = document.getElementById('crs-name').value.trim();
   const email = document.getElementById('crs-email').value.trim();
   const password = document.getElementById('crs-password').value;
@@ -120,6 +179,13 @@ async function createCrsAgent() {
   if (!full_name) { errEl.textContent='Name is required'; return; }
   if (!email) { errEl.textContent='Email is required'; return; }
   if (password.length < 8) { errEl.textContent='Password must be at least 8 characters'; return; }
+
+  // Temp admin cannot assign admin role
+  if (role === 'admin' && myRole !== 'admin') {
+    errEl.textContent = 'Only the main administrator can create Admin accounts.';
+    return;
+  }
+
   const btn = document.getElementById('save-crs-btn');
   btn.disabled=true; btn.textContent='Creating…';
   const { data, error } = await window._supabase.auth.signUp({ email, password, options: { data: { full_name, role } } });
@@ -127,7 +193,7 @@ async function createCrsAgent() {
   if (data?.user?.id) {
     await window._supabase.from('profiles').upsert({ id: data.user.id, email, full_name, role }, { onConflict:'id' });
   }
-  showToast(`Agent account created for ${full_name}`);
+  showToast(`Account created for ${full_name}`);
   closeModal('modal-add-crs');
   btn.disabled=false; btn.textContent='Create Account';
   await loadAll();
@@ -190,11 +256,24 @@ function bindEvents() {
     });
   });
 
+  // Hide Invite button for supervisors (read-only)
+  const myRole = window._profile?.role;
+  if (myRole === 'supervisor') {
+    document.getElementById('btn-add-crs').style.display = 'none';
+    document.getElementById('btn-add-delivery-staff').style.display = 'none';
+  }
+
   document.getElementById('btn-add-crs').addEventListener('click', () => {
+    const iAmMainAdmin = window._profile?.role === 'admin';
+    // Populate role select — hide admin option for non-main-admins
+    const roleSelect = document.getElementById('crs-role');
+    Array.from(roleSelect.options).forEach(opt => {
+      if (opt.value === 'admin') opt.hidden = !iAmMainAdmin;
+    });
     document.getElementById('crs-name').value='';
     document.getElementById('crs-email').value='';
     document.getElementById('crs-password').value='';
-    document.getElementById('crs-role').value='crs_agent';
+    roleSelect.value='crs_agent';
     document.getElementById('crs-error').textContent='';
     openModal('modal-add-crs');
   });

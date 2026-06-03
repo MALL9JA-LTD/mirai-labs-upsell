@@ -3,7 +3,7 @@ let allProducts = [], allStaff = [], allAgentInventory = [], allDispatches = [],
 (async () => {
   const profile = await requireAuth();
   if (!profile) return;
-  if (profile.role !== 'admin') {
+  if (!['admin','temp_admin','supervisor'].includes(profile.role)) {
     document.querySelector('.main-content').innerHTML = '<div class="empty-state" style="padding:60px;"><em>Admin access only.</em></div>';
     return;
   }

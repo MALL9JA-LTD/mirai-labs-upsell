@@ -1,7 +1,7 @@
 async function init() {
   const profile = await requireAuth();
   if (!profile) return;
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = ['admin','temp_admin','supervisor'].includes(profile?.role);
 
   // Greeting
   const hour = new Date().getHours();
@@ -26,7 +26,7 @@ async function init() {
         window._supabase.from('customers').select('id,order_date').order('id').range(f, t)
       ),
       fetchAll((f, t) =>
-        window._supabase.from('profiles').select('id,full_name,role').in('role', ['admin', 'crs_agent']).order('full_name').range(f, t)
+        window._supabase.from('profiles').select('id,full_name,role').order('full_name').range(f, t)
       ),
       fetchAll((f, t) =>
         window._supabase.from('products').select('id,name,cost_price,selling_price').order('name').range(f, t)

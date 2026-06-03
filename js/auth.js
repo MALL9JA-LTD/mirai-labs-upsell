@@ -1,3 +1,14 @@
+// Role helpers — available globally after requireAuth()
+// isAdminLevel: sees all pages & data (admin, temp_admin, supervisor)
+// canWrite:     can create/edit/delete (admin, temp_admin)
+// isMainAdmin:  full unrestricted control (admin only)
+function _roleLabel(role) {
+  return { admin: 'Administrator', temp_admin: 'Temp Admin', supervisor: 'Supervisor', crs_agent: 'CRS Agent' }[role] || role;
+}
+function isAdminLevel(profile) { return ['admin','temp_admin','supervisor'].includes(profile?.role); }
+function canWrite(profile)      { return ['admin','temp_admin'].includes(profile?.role); }
+function isMainAdmin(profile)   { return profile?.role === 'admin'; }
+
 async function requireAuth() {
   const { data: { session } } = await window._supabase.auth.getSession();
   if (!session) { window.location.href = '/'; return null; }
@@ -5,12 +16,16 @@ async function requireAuth() {
     .from('profiles').select('*').eq('id', session.user.id).single();
   window._profile = profile;
   window._session = session;
+  // Expose helpers on window for use in page scripts
+  window._isAdminLevel = () => isAdminLevel(window._profile);
+  window._canWrite     = () => canWrite(window._profile);
+  window._isMainAdmin  = () => isMainAdmin(window._profile);
   renderSidebar(profile, session);
   return profile;
 }
 
 function renderSidebar(profile, session) {
-  const isAdmin = profile?.role === 'admin';
+  const adminLevel = isAdminLevel(profile);
 
   const links = [
     { href: '/dashboard',      icon: '▦', label: 'Dashboard',      admin: false },
@@ -41,7 +56,7 @@ function renderSidebar(profile, session) {
   const nav = document.getElementById('sidebar-nav');
   if (nav) {
     nav.innerHTML = links
-      .filter(l => !l.admin || isAdmin)
+      .filter(l => !l.admin || adminLevel)
       .map(l => {
         const isActive = location.pathname === l.href || location.pathname.startsWith(l.href + '/');
         return `<a href="${l.href}" class="sidebar-link${isActive ? ' active' : ''}" aria-label="${l.label}">
@@ -67,9 +82,7 @@ function renderSidebar(profile, session) {
   }
 
   const roleEl = document.getElementById('topbar-role');
-  if (roleEl) {
-    roleEl.textContent = isAdmin ? 'Administrator' : 'CRS Agent';
-  }
+  if (roleEl) roleEl.textContent = _roleLabel(profile?.role);
 
   const logoutBtn = document.getElementById('btn-logout');
   if (logoutBtn) {

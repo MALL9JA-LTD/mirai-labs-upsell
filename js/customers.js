@@ -10,7 +10,7 @@ let selectAllMatching = false;
 (async () => {
   const profile = await requireAuth();
   if (!profile) return;
-  isAdmin = profile.role === 'admin';
+  isAdmin = ['admin','temp_admin','supervisor'].includes(profile.role);
 
   if (!isAdmin) {
     document.getElementById('header-actions').style.display = 'none';
@@ -46,7 +46,7 @@ async function loadAll() {
 
   if (isAdmin) {
     queries.push(
-      window._supabase.from('profiles').select('id,full_name,role').in('role',['admin','crs_agent']).order('full_name')
+      window._supabase.from('profiles').select('id,full_name,role').order('full_name')
     );
   }
 

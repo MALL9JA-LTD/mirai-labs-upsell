@@ -8,7 +8,7 @@ let currentChannel = 'call';
 (async () => {
   const profile = await requireAuth();
   if (!profile) return;
-  isAdmin = profile.role === 'admin';
+  isAdmin = ['admin','temp_admin','supervisor'].includes(profile.role);
 
   // Populate outcome dropdown
   const outcomeEl = document.getElementById('call-outcome');
@@ -46,7 +46,7 @@ async function loadAll() {
   ];
 
   if (isAdmin) {
-    queries.push(window._supabase.from('profiles').select('id,full_name,role').in('role', ['admin', 'crs_agent']).order('full_name'));
+    queries.push(window._supabase.from('profiles').select('id,full_name,role').order('full_name'));
   }
 
   const results = await Promise.all(queries);

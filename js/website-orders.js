@@ -8,7 +8,7 @@ const PAGE_SIZE = 50;
   const profile = await requireAuth();
   if (!profile) return;
 
-  if (profile.role !== 'admin') {
+  if (!['admin','temp_admin','supervisor'].includes(profile.role)) {
     document.querySelector('.main-content').innerHTML =
       `<div class="empty-state" style="padding:60px;"><span class="empty-icon">🔒</span>Admin access only</div>`;
     return;
