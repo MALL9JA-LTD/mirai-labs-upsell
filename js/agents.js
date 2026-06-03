@@ -6,7 +6,10 @@ document.addEventListener('click', e => {
 });
 
 function closeAllMenus() {
-  document.querySelectorAll('.row-menu.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.row-menu.open').forEach(m => {
+    m.classList.remove('open');
+    m.classList.remove('open-up');
+  });
 }
 
 function toggleMenu(btn, menuId) {
@@ -14,15 +17,12 @@ function toggleMenu(btn, menuId) {
   const wasOpen = menu.classList.contains('open');
   closeAllMenus();
   if (!wasOpen) {
-    // Show first so offsetHeight is real
     menu.classList.add('open');
+    // If near bottom of viewport, open upward
     const rect = btn.getBoundingClientRect();
-    // position:fixed — no scrollY adjustment needed
-    const top = (window.innerHeight - rect.bottom < 220)
-      ? rect.top - menu.offsetHeight - 4
-      : rect.bottom + 4;
-    menu.style.top  = Math.max(4, top) + 'px';
-    menu.style.left = Math.min(rect.left, window.innerWidth - 194) + 'px';
+    if (window.innerHeight - rect.bottom < 240) {
+      menu.classList.add('open-up');
+    }
   }
 }
 
@@ -114,10 +114,13 @@ function renderTeam() {
         </button>`).join('');
 
     const actionItems = `
-      ${custCount > 0 ? `<button class="row-menu-item" onclick="clearAgentCustomers('${a.id}','${escAttr(a.full_name||'')}',this)">Clear ${custCount} customer${custCount>1?'s':''}</button>` : ''}
+      ${custCount > 0 ? `<button class="row-menu-item" onclick="clearAgentCustomers('${a.id}','${escAttr(a.full_name||'')}')">Clear ${custCount} customer${custCount>1?'s':''}</button>` : ''}
       ${isActive
-        ? `<button class="row-menu-item danger" onclick="setActive('${a.id}',false,this)">Deactivate agent</button>`
-        : `<button class="row-menu-item" onclick="setActive('${a.id}',true,this)">Reactivate agent</button>`
+        ? `<button class="row-menu-item danger" onclick="setActive('${a.id}',false)">Deactivate agent</button>`
+        : `
+          <button class="row-menu-item" onclick="setActive('${a.id}',true)">Reactivate agent</button>
+          <button class="row-menu-item danger" onclick="removeAgent('${a.id}','${escAttr(a.full_name||'')}')">Remove permanently</button>
+        `
       }
     `;
 
@@ -172,11 +175,26 @@ async function setActive(agentId, active, triggerEl) {
   await loadAll();
 }
 
-async function clearAgentCustomers(agentId, agentName, triggerEl) {
+async function removeAgent(agentId, agentName) {
+  closeAllMenus();
+  if (!confirm(`Permanently remove ${agentName} from the app?\n\nTheir call and delivery history will be kept but unlinked. This cannot be undone.`)) return;
+  // Unassign their customers first
+  await window._supabase.from('customers').update({ assigned_to: null }).eq('assigned_to', agentId);
+  // Unlink from call_logs and deliveries (preserve history, just remove agent link)
+  await window._supabase.from('call_logs').update({ agent_id: null }).eq('agent_id', agentId);
+  await window._supabase.from('deliveries').update({ agent_id: null }).eq('agent_id', agentId);
+  // Now delete the profile
+  const { error } = await window._supabase.from('profiles').delete().eq('id', agentId);
+  if (error) { showToast('Remove failed: ' + error.message, 'error'); return; }
+  showToast(`${agentName} removed from the app`);
+  await loadAll();
+}
+
+async function clearAgentCustomers(agentId, agentName) {
   closeAllMenus();
   if (!confirm(`Unassign all customers from ${agentName}?\n\nThey will become available for redistribution.`)) return;
   const { error } = await window._supabase.from('customers').update({ assigned_to: null }).eq('assigned_to', agentId);
-  if (error) { showToast('Error: ' + error.message,'error'); return; }
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast(`Customers unassigned from ${agentName}`);
   await loadAll();
 }
@@ -260,7 +278,18 @@ async function createCrsAgent() {
 
   const btn = document.getElementById('save-crs-btn');
   btn.disabled=true; btn.textContent='Creating…';
+
+  // Save admin session BEFORE signUp — Supabase signUp replaces the current session
+  const adminAccessToken  = window._session?.access_token;
+  const adminRefreshToken = window._session?.refresh_token;
+
   const { data, error } = await window._supabase.auth.signUp({ email, password, options:{ data:{ full_name, role } } });
+
+  // Immediately restore admin session regardless of outcome
+  if (adminAccessToken) {
+    await window._supabase.auth.setSession({ access_token: adminAccessToken, refresh_token: adminRefreshToken });
+  }
+
   if (error) { errEl.textContent=error.message; btn.disabled=false; btn.textContent='Create Account'; return; }
   if (data?.user?.id) {
     await window._supabase.from('profiles').upsert({ id:data.user.id, email, full_name, role, is_active:true }, { onConflict:'id' });
