@@ -190,14 +190,8 @@ function openClearDataModal(agentId, agentName) {
 async function clearAgentData() {
   const agentId   = document.getElementById('clear-agent-id').value;
   const agentName = document.getElementById('clear-agent-name-stored').value;
-  const typed     = document.getElementById('clear-confirm-input').value.trim();
   const errEl     = document.getElementById('clear-data-error');
   errEl.textContent = '';
-
-  if (typed !== agentName) {
-    errEl.textContent = `Name doesn't match. Type exactly: ${agentName}`;
-    return;
-  }
 
   const btn = document.getElementById('confirm-clear-btn');
   btn.disabled = true; btn.textContent = 'Clearing…';
@@ -444,10 +438,6 @@ function bindEvents() {
   }
 
   document.getElementById('confirm-clear-btn').addEventListener('click', clearAgentData);
-  // Also allow Enter key in the confirm input
-  document.getElementById('clear-confirm-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') clearAgentData();
-  });
 
   document.getElementById('btn-add-crs').addEventListener('click', () => {
     const iAmMainAdmin = window._profile?.role === 'admin';
