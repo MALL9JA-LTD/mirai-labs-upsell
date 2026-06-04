@@ -363,19 +363,35 @@ function addItemRow() {
     </div>
     <button type="button" class="item-remove-btn" data-idx="${idx}" style="margin-top:18px;">✕</button>`;
 
-  function recalcRowPrice() {
+  // Called when tier changes — snaps qty + price to offer values
+  function onTierChange() {
     const tierSel = row.querySelector('.item-tier');
     const selectedTier = tierSel.options[tierSel.selectedIndex];
     const tierPrice = Number(selectedTier?.dataset?.tierPrice || 0);
     const tierQty   = Number(selectedTier?.dataset?.tierQty || 1);
-    const multiplier = Number(row.querySelector('.item-qty').value) || 1;
-    if (tierPrice > 0) {
-      row.querySelector('.item-price').value = tierPrice * multiplier;
-      // Show real unit count
-      row.dataset.realQty = tierQty * multiplier;
+    // Snap qty field to the offer's unit count
+    row.querySelector('.item-qty').value = tierQty;
+    // Snap price to the offer's price
+    if (tierPrice > 0) row.querySelector('.item-price').value = tierPrice;
+    syncItem(idx); recalcTotal();
+  }
+
+  // Called when qty is manually changed — multiplies offer price
+  function onQtyChange() {
+    const tierSel = row.querySelector('.item-tier');
+    const selectedTier = tierSel.options[tierSel.selectedIndex];
+    const tierPrice = Number(selectedTier?.dataset?.tierPrice || 0);
+    const tierQty   = Number(selectedTier?.dataset?.tierQty || 1);
+    const qty = Number(row.querySelector('.item-qty').value) || 1;
+    if (tierPrice > 0 && tierQty > 0) {
+      // How many full bundles? Price scales proportionally
+      const bundles = qty / tierQty;
+      row.querySelector('.item-price').value = Math.round(tierPrice * bundles);
     }
     syncItem(idx); recalcTotal();
   }
+
+  function recalcRowPrice() { onTierChange(); }
 
   row.querySelector('.item-product').addEventListener('change', e => {
     const productId = e.target.value;
@@ -401,8 +417,8 @@ function addItemRow() {
     recalcRowPrice();
   });
 
-  row.querySelector('.item-tier').addEventListener('change', recalcRowPrice);
-  row.querySelector('.item-qty').addEventListener('input', recalcRowPrice);
+  row.querySelector('.item-tier').addEventListener('change', onTierChange);
+  row.querySelector('.item-qty').addEventListener('input', onQtyChange);
   row.querySelector('.item-price').addEventListener('input', () => { syncItem(idx); recalcTotal(); });
   row.querySelector('.item-remove-btn').addEventListener('click', () => { row.remove(); itemRows[idx] = null; recalcTotal(); });
   container.appendChild(row);
