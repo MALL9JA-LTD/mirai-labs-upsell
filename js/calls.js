@@ -454,7 +454,6 @@ async function submitCall() {
       const waybillFee  = Number(document.getElementById('waybill-fee').value) || 0;
       const staffId     = document.getElementById('delivery-staff').value || null;
       const totalSale   = validItems.reduce((s, r) => s + (r.sale_price || 0), 0);
-      const firstP      = allProducts.find(p => p.id === validItems[0].product_id);
       const delivPayload = {
         customer_id: customerId, agent_id: agentId, logged_by: agentId,
         product_id: validItems[0].product_id, quantity: validItems[0].qty,
@@ -475,7 +474,24 @@ async function submitCall() {
       }
     }
 
-    showToast(outcome === 'ordered' ? 'Call logged and order created!' : 'Call logged');
+    // When CRS logs outcome as "delivered", mark the pending delivery as delivered
+    if (outcome === 'delivered') {
+      const { data: pendingDelivs } = await window._supabase.from('deliveries')
+        .select('id').eq('customer_id', customerId).eq('status', 'pending').limit(1);
+      if (pendingDelivs && pendingDelivs.length > 0) {
+        const { error } = await window._supabase.from('deliveries')
+          .update({ status: 'delivered' }).eq('id', pendingDelivs[0].id);
+        if (error) throw error;
+      } else {
+        // No pending delivery found — warn but don't block saving the call
+        showToast('Call saved. Note: no pending delivery found to mark as delivered.', 'error');
+      }
+    }
+
+    const toastMsg = outcome === 'ordered' ? 'Call logged and order created!'
+      : outcome === 'delivered' ? 'Call logged and delivery marked as delivered!'
+      : 'Call logged';
+    showToast(toastMsg);
     closeModal('modal-call');
     await loadAll();
     if (selectedCustomer) {
