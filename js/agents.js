@@ -43,7 +43,7 @@ async function loadAll() {
 
   const [profiles, dstaff, callLogs, deliveries, customers] = await Promise.all([
     window._supabase.from('profiles').select('*').order('created_at',{ascending:false}),
-    window._supabase.from('delivery_staff').select('id,name,phone,active,created_at').order('created_at',{ascending:false}),
+    window._supabase.from('delivery_staff').select('id,name,phone,state,active').order('name'),
     fetchAll((from,to) => window._supabase.from('call_logs').select('id,agent_id,outcome').order('id').range(from,to)),
     fetchAll((from,to) => window._supabase.from('deliveries').select('id,agent_id,status,sale_price').order('id').range(from,to)),
     fetchAll((from,to) => window._supabase.from('customers').select('id,assigned_to').order('id').range(from,to)),
@@ -208,8 +208,8 @@ function renderDeliveryStaff() {
   tbody.innerHTML = allDeliveryStaff.map(s => `<tr>
     <td><strong>${s.name||'—'}</strong></td>
     <td>${s.phone||'—'}</td>
+    <td>${s.state||'—'}</td>
     <td>${s.active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-neutral">Inactive</span>'}</td>
-    <td>${fmtDate(s.created_at)}</td>
     <td style="display:flex;gap:4px;">
       <button class="btn-ghost btn-sm" onclick="editDeliveryStaff('${s.id}')">Edit</button>
       <button class="btn-ghost btn-sm" style="color:var(--ml-muted);" onclick="toggleStaffActive('${s.id}',${!s.active})">${s.active?'Deactivate':'Activate'}</button>
@@ -220,9 +220,10 @@ function renderDeliveryStaff() {
 function editDeliveryStaff(id) {
   const s = allDeliveryStaff.find(x => x.id===id);
   if (!s) return;
-  document.getElementById('dstaff-id').value = s.id;
-  document.getElementById('dstaff-name').value = s.name||'';
+  document.getElementById('dstaff-id').value    = s.id;
+  document.getElementById('dstaff-name').value  = s.name||'';
   document.getElementById('dstaff-phone').value = s.phone||'';
+  document.getElementById('dstaff-state').value = s.state||'';
   document.getElementById('dstaff-active').checked = !!s.active;
   document.getElementById('dstaff-modal-title').textContent = 'Edit Delivery Staff';
   document.getElementById('dstaff-error').textContent = '';
@@ -233,13 +234,14 @@ async function saveDeliveryStaff() {
   const id    = document.getElementById('dstaff-id').value;
   const name  = document.getElementById('dstaff-name').value.trim();
   const phone = document.getElementById('dstaff-phone').value.trim();
+  const state = document.getElementById('dstaff-state').value.trim();
   const active= document.getElementById('dstaff-active').checked;
   const errEl = document.getElementById('dstaff-error');
   errEl.textContent='';
   if (!name) { errEl.textContent='Name is required'; return; }
   const btn = document.getElementById('save-dstaff-btn');
   btn.disabled=true; btn.textContent='Saving…';
-  const payload = { name, phone, active };
+  const payload = { name, phone, state, active };
   let error;
   if (id) {
     const res = await window._supabase.from('delivery_staff').update(payload).eq('id',id).select();
@@ -253,6 +255,86 @@ async function saveDeliveryStaff() {
   if (error) { errEl.textContent=error.message; return; }
   showToast(id ? 'Staff updated' : 'Staff added');
   closeModal('modal-delivery-staff');
+  await loadAll();
+}
+
+// ── CSV IMPORT ────────────────────────────────────────────────
+let csvStaffRows = [];
+
+function handleDStaffCsv(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { showToast('CSV file is empty or has no data rows','error'); return; }
+
+    // Detect header
+    const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g,''));
+    const nameIdx  = header.findIndex(h => h.includes('name'));
+    const phoneIdx = header.findIndex(h => h.includes('phone'));
+    const stateIdx = header.findIndex(h => h.includes('state') || h.includes('area'));
+
+    if (nameIdx === -1) { showToast('CSV must have a "name" column','error'); return; }
+
+    csvStaffRows = [];
+    const parseRow = (line) => {
+      // Handle quoted commas
+      const cols = [];
+      let cur = '', inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      return cols;
+    };
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseRow(lines[i]);
+      const name = nameIdx  >= 0 ? (cols[nameIdx]  || '').replace(/^"|"$/g,'').trim() : '';
+      const phone= phoneIdx >= 0 ? (cols[phoneIdx] || '').replace(/^"|"$/g,'').trim() : '';
+      const state= stateIdx >= 0 ? (cols[stateIdx] || '').replace(/^"|"$/g,'').trim() : '';
+      if (name) csvStaffRows.push({ name, phone, state, active: true });
+    }
+
+    if (csvStaffRows.length === 0) { showToast('No valid rows found in CSV','error'); return; }
+
+    // Show preview
+    const preview = document.getElementById('dstaff-csv-preview');
+    preview.innerHTML = `
+      <p style="font-size:12px;color:var(--ml-muted);margin-bottom:8px;">${csvStaffRows.length} staff found — preview:</p>
+      <table class="data-table" style="font-size:12px;">
+        <thead><tr><th>NAME</th><th>PHONE</th><th>STATE</th></tr></thead>
+        <tbody>${csvStaffRows.slice(0,10).map(r => `<tr><td>${r.name}</td><td>${r.phone||'—'}</td><td>${r.state||'—'}</td></tr>`).join('')}</tbody>
+      </table>
+      ${csvStaffRows.length > 10 ? `<p style="font-size:11px;color:var(--ml-muted);margin-top:6px;">...and ${csvStaffRows.length - 10} more</p>` : ''}
+    `;
+    document.getElementById('dstaff-csv-error').textContent = '';
+    openModal('modal-dstaff-csv');
+  };
+  reader.readAsText(file);
+}
+
+async function importDStaffCsv() {
+  if (csvStaffRows.length === 0) return;
+  const btn = document.getElementById('btn-confirm-dstaff-csv');
+  const errEl = document.getElementById('dstaff-csv-error');
+  btn.disabled = true; btn.textContent = 'Importing…';
+
+  // Batch insert in chunks of 50
+  const CHUNK = 50;
+  let imported = 0;
+  for (let i = 0; i < csvStaffRows.length; i += CHUNK) {
+    const { error } = await window._supabase.from('delivery_staff').insert(csvStaffRows.slice(i, i + CHUNK));
+    if (error) { errEl.textContent = error.message; btn.disabled=false; btn.textContent='Import All'; return; }
+    imported += Math.min(CHUNK, csvStaffRows.length - i);
+  }
+
+  btn.disabled=false; btn.textContent='Import All';
+  showToast(`Imported ${imported} delivery staff`);
+  closeModal('modal-dstaff-csv');
+  csvStaffRows = [];
+  document.getElementById('dstaff-csv-file').value = '';
   await loadAll();
 }
 
@@ -333,10 +415,20 @@ function bindEvents() {
     document.getElementById('dstaff-id').value='';
     document.getElementById('dstaff-name').value='';
     document.getElementById('dstaff-phone').value='';
+    document.getElementById('dstaff-state').value='';
     document.getElementById('dstaff-active').checked=true;
     document.getElementById('dstaff-modal-title').textContent='Add Delivery Staff';
     document.getElementById('dstaff-error').textContent='';
     openModal('modal-delivery-staff');
   });
   document.getElementById('save-dstaff-btn').addEventListener('click', saveDeliveryStaff);
+
+  // CSV import
+  document.getElementById('btn-import-dstaff').addEventListener('click', () => {
+    document.getElementById('dstaff-csv-file').click();
+  });
+  document.getElementById('dstaff-csv-file').addEventListener('change', e => {
+    if (e.target.files[0]) handleDStaffCsv(e.target.files[0]);
+  });
+  document.getElementById('btn-confirm-dstaff-csv').addEventListener('click', importDStaffCsv);
 }
