@@ -82,14 +82,20 @@ async function init() {
       return s + (Number(p?.cost_price) || 0) * (Number(d.quantity) || 1);
     }, 0);
 
+    const isCrs = profile?.role === 'crs_agent';
+
     // Render KPI cards
     setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
     setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
-    if (isAdmin) {
+
+    // Profit: admin/temp_admin only — completely hidden for supervisor & CRS
+    const profitEl = document.getElementById('kpi-profit');
+    if (['admin','temp_admin'].includes(profile?.role)) {
       setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
     } else {
-      document.getElementById('kpi-profit').innerHTML = hiddenKpi('Profit (Admin Only)');
+      if (profitEl) profitEl.style.display = 'none';
     }
+
     setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
     setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
     setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
@@ -122,12 +128,20 @@ async function init() {
     const delRate = allOrdersCount > 0 ? (deliveredOrdersCount / allOrdersCount * 100).toFixed(1) + '%' : '0%';
     setKpi('kpi-delrate', delRate, 'Delivery Rate', 'Delivered / Ordered', '📊');
 
-    // Revenue by Product
-    renderRevenueByProduct(delivered, productMap);
-    // Revenue by Tier
-    renderRevenueByTier(delivered, customers);
-    // Top CRS Agents
-    renderTopAgents(callLogs, delivered, profiles);
+    // Revenue by Product, Tier, Top Agents — hidden for CRS agents
+    if (!isCrs) {
+      renderRevenueByProduct(delivered, productMap);
+      renderRevenueByTier(delivered, customers);
+      renderTopAgents(callLogs, delivered, profiles);
+    } else {
+      // Hide the parent card elements entirely
+      document.getElementById('rev-by-product')?.closest('.card')?.style.setProperty('display','none');
+      document.getElementById('rev-by-tier')?.closest('.card')?.style.setProperty('display','none');
+      document.getElementById('top-agents')?.closest('.card')?.style.setProperty('display','none');
+      // Also hide the grid wrapper containing both product+tier tables
+      const gridWrap = document.getElementById('rev-by-product')?.closest('[style*="grid"]');
+      if (gridWrap) gridWrap.style.display = 'none';
+    }
     // Recent Activity
     const custMap = {};
     customers.forEach(c => { custMap[c.id] = c; });
