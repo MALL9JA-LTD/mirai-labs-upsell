@@ -24,12 +24,10 @@ async function runReport() {
 
   try {
     const [deliveries, callLogs, customers, profiles, products, allStaff] = await Promise.all([
-      // Deliveries filtered directly by their own created_at date
+      // Fetch all deliveries — filter by delivered_at for delivered, created_at for others
       fetchAll((from, to) =>
         window._supabase.from('deliveries')
-          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id,created_at')
-          .gte('created_at', fromDate+'T00:00:00')
-          .lte('created_at', toDate+'T23:59:59')
+          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id,created_at,delivered_at')
           .order('id').range(from, to)
       ),
       // Call logs filtered by date range
@@ -55,10 +53,15 @@ async function runReport() {
     const staffLookup = {};
     (allStaff.data||[]).forEach(s => { staffLookup[s.id] = s; });
 
-    const periodDeliveries = deliveries; // already date-filtered
-    const delivered = periodDeliveries.filter(d => d.status==='delivered');
-    const allOrders = periodDeliveries;
-    const failed = periodDeliveries.filter(d => ['failed','failed_delivery'].includes(d.status));
+    // Filter: delivered orders by delivered_at, all orders by created_at
+    const from = new Date(fromDate+'T00:00:00');
+    const to   = new Date(toDate+'T23:59:59');
+    const inRange = (dateStr) => { if (!dateStr) return false; const d = new Date(dateStr); return d >= from && d <= to; };
+
+    const delivered = deliveries.filter(d => d.status==='delivered' && inRange(d.delivered_at || d.created_at));
+    const allOrders = deliveries.filter(d => inRange(d.created_at));
+    const failed = allOrders.filter(d => ['failed','failed_delivery'].includes(d.status));
+    const periodDeliveries = [...new Set([...delivered, ...allOrders])]; // union for staff stats
 
     const totalRev = delivered.reduce((s,d) => s+Number(d.sale_price||0), 0);
     const totalOrders = delivered.length;

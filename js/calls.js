@@ -244,6 +244,8 @@ function openCallModal(prefillCustomer) {
   document.getElementById('waybill-fee').value  = '0';
   document.getElementById('waybill-group').style.display = 'none';
   document.getElementById('customer-list').style.display = 'none';
+  const ds = document.getElementById('delivery-date-section');
+  if (ds) { ds.style.display = 'none'; document.getElementById('delivery-date-input').value = ''; }
 
   const cust = prefillCustomer || selectedCustomer;
   if (cust) {
@@ -326,6 +328,15 @@ function onOutcomeChange() {
   const val = document.getElementById('call-outcome').value;
   document.getElementById('order-section').style.display = val === 'ordered' ? 'block' : 'none';
   if (val === 'ordered' && itemRows.length === 0) addItemRow();
+  // Show delivery date field when outcome is delivered
+  const dateSection = document.getElementById('delivery-date-section');
+  if (dateSection) {
+    dateSection.style.display = val === 'delivered' ? 'block' : 'none';
+    if (val === 'delivered') {
+      const inp = document.getElementById('delivery-date-input');
+      if (!inp.value) inp.value = new Date().toISOString().split('T')[0]; // default today
+    }
+  }
 }
 
 function addItemRow() {
@@ -492,14 +503,20 @@ async function submitCall() {
 
     // When CRS logs outcome as "delivered", mark the pending delivery as delivered
     if (outcome === 'delivered') {
+      const delivDateVal = document.getElementById('delivery-date-input')?.value;
+      if (!delivDateVal) {
+        showToast('Please enter the delivery date.', 'error');
+        btn.disabled = false; btn.textContent = 'Save Call';
+        return;
+      }
       const { data: pendingDelivs } = await window._supabase.from('deliveries')
         .select('id').eq('customer_id', customerId).eq('status', 'pending').limit(1);
       if (pendingDelivs && pendingDelivs.length > 0) {
         const { error } = await window._supabase.from('deliveries')
-          .update({ status: 'delivered' }).eq('id', pendingDelivs[0].id);
+          .update({ status: 'delivered', delivered_at: delivDateVal + 'T12:00:00' })
+          .eq('id', pendingDelivs[0].id);
         if (error) throw error;
       } else {
-        // No pending delivery found — warn but don't block saving the call
         showToast('Call saved. Note: no pending delivery found to mark as delivered.', 'error');
       }
     }

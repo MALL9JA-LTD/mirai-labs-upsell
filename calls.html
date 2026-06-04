@@ -173,6 +173,15 @@
           <textarea id="call-notes" rows="2" placeholder="Notes about this call…"></textarea>
         </div>
 
+        <!-- Delivery date (shown when outcome = delivered) -->
+        <div id="delivery-date-section" style="display:none;">
+          <div class="form-group">
+            <label>Delivery Date *</label>
+            <input type="date" id="delivery-date-input" />
+            <div style="font-size:11px;color:var(--ml-muted);margin-top:4px;">The exact date this order was delivered to the customer.</div>
+          </div>
+        </div>
+
         <!-- Order Details (shown when outcome = ordered) -->
         <div id="order-section">
           <div class="order-section">
