@@ -218,7 +218,8 @@ function openEditDelivery(id) {
   resetDeliveryModal();
   document.getElementById('delivery-id').value = d.id;
   document.getElementById('delivery-modal-title').textContent = 'Edit Delivery';
-  const cust = d.customers;
+  // Client-side customer lookup (no join)
+  const cust = allCustomers.find(c => c.id === d.customer_id);
   if (cust) {
     document.getElementById('d-cust-search').value = cust.full_name||'';
     document.getElementById('d-cust-id').value = d.customer_id;
@@ -233,8 +234,10 @@ function openEditDelivery(id) {
   document.getElementById('d-staff').value = d.delivery_staff_id||'';
   document.getElementById('d-crs').value = d.agent_id||d.logged_by||'';
 
-  // Populate items
-  const items = Array.isArray(d.items) && d.items.length > 0 ? d.items : [{ product_id: d.product_id, qty: d.quantity||1, sale_price: d.sale_price||0 }];
+  // Populate items — sale_price here is the line total
+  const items = Array.isArray(d.items) && d.items.length > 0
+    ? d.items
+    : [{ product_id: d.product_id, qty: d.quantity||1, sale_price: d.sale_price||0 }];
   items.forEach(it => addDItemRow(it));
   openModal('modal-delivery');
 }
@@ -271,7 +274,8 @@ function syncDItem(idx) {
 }
 
 function recalcDTotal() {
-  const total = dItemRows.filter(Boolean).reduce((s,r) => s + r.sale_price * r.qty, 0);
+  // sale_price is the line total (not unit price), so don't multiply by qty again
+  const total = dItemRows.filter(Boolean).reduce((s,r) => s + Number(r.sale_price||0), 0);
   document.getElementById('d-running-total').textContent = 'Total: ' + fmtMoney(total);
 }
 
@@ -307,9 +311,8 @@ async function saveDelivery() {
   if (validItems.length === 0) { showToast('Please add at least one item','error'); return; }
   const btn = document.getElementById('save-delivery-btn');
   btn.disabled=true; btn.textContent='Saving…';
-  const totalSale = validItems.reduce((s,r) => s + r.sale_price * r.qty, 0);
-  const firstP = allProducts.find(p => p.id === validItems[0].product_id);
-  const costPrice = firstP ? Number(firstP.cost_price||0) * validItems[0].qty : 0;
+  // sale_price per item is the line total (already includes qty)
+  const totalSale = validItems.reduce((s,r) => s + Number(r.sale_price||0), 0);
   const status = document.getElementById('d-status').value;
   const payload = {
     customer_id: custId,
@@ -318,7 +321,6 @@ async function saveDelivery() {
     product_id: validItems[0].product_id,
     quantity: validItems[0].qty,
     sale_price: totalSale,
-    cost_price: costPrice,
     delivery_fee: Number(document.getElementById('d-delivery-fee').value)||0,
     waybill_fee: Number(document.getElementById('d-waybill-fee').value)||0,
     delivery_staff_id: document.getElementById('d-staff').value||null,
