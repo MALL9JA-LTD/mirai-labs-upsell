@@ -14,12 +14,12 @@ async function init() {
     const [deliveries, callLogs, customers, profiles, products, deliveryStaff] = await Promise.all([
       fetchAll((f, t) =>
         window._supabase.from('deliveries')
-          .select('id,status,sale_price,delivery_fee,waybill_fee,quantity,product_id,items,agent_id,logged_by,customer_id,products(id,name,cost_price)')
+          .select('id,status,sale_price,delivery_fee,waybill_fee,quantity,product_id,items,agent_id,logged_by,customer_id')
           .order('id').range(f, t)
       ),
       fetchAll((f, t) =>
         window._supabase.from('call_logs')
-          .select('id,customer_id,agent_id,outcome,call_date,channel,customers(full_name),profiles(full_name)')
+          .select('id,customer_id,agent_id,outcome,call_date,channel')
           .order('call_date', { ascending: false }).order('id', { ascending: false }).range(f, t)
       ),
       fetchAll((f, t) =>
@@ -129,7 +129,11 @@ async function init() {
     // Top CRS Agents
     renderTopAgents(callLogs, delivered, profiles);
     // Recent Activity
-    renderRecentActivity(callLogs);
+    const custMap = {};
+    customers.forEach(c => { custMap[c.id] = c; });
+    const profMap = {};
+    profiles.forEach(p => { profMap[p.id] = p; });
+    renderRecentActivity(callLogs, custMap, profMap);
 
   } catch (err) {
     console.error('Dashboard error:', err);
@@ -253,7 +257,7 @@ function renderTopAgents(callLogs, delivered, profiles) {
   </table>`;
 }
 
-function renderRecentActivity(callLogs) {
+function renderRecentActivity(callLogs, custMap, profMap) {
   const el = document.getElementById('recent-activity');
   if (!el) return;
   const recent = callLogs.slice(0, 20);
@@ -262,19 +266,21 @@ function renderRecentActivity(callLogs) {
     return;
   }
   const outcomeColor = {
-    answered: '#5DCAA5', ordered: '#E8B84B', interested: '#EF9F27',
+    answered: '#5DCAA5', ordered: '#E8B84B', delivered: '#5DCAA5', interested: '#EF9F27',
     declined: '#F09595', angry: '#F09595', no_answer: '#888070',
     callback_requested: '#888070', wrong_number: '#888070'
   };
   el.innerHTML = recent.map(c => {
     const color = outcomeColor[c.outcome] || '#888070';
+    const custName = custMap[c.customer_id]?.full_name || '—';
+    const agentName = profMap[c.agent_id]?.full_name || '—';
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--ml-border);">
       <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
       <div style="flex:1;">
-        <span style="color:var(--ml-white);font-weight:400;">${c.customers?.full_name || '—'}</span>
+        <span style="color:var(--ml-white);font-weight:400;">${custName}</span>
         <span style="color:var(--ml-muted);"> — </span>
         <span style="color:${color};">${statusLabel(c.outcome)}</span>
-        <div style="font-size:11px;color:var(--ml-muted);margin-top:2px;">by ${c.profiles?.full_name || '—'} · ${fmtDate(c.call_date)}</div>
+        <div style="font-size:11px;color:var(--ml-muted);margin-top:2px;">by ${agentName} · ${fmtDate(c.call_date)}</div>
       </div>
     </div>`;
   }).join('');
