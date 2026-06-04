@@ -324,7 +324,7 @@ function checkWaybill(state) {
 
 function onOutcomeChange() {
   const val = document.getElementById('call-outcome').value;
-  document.getElementById('order-section').style.display = val === 'ordered' ? '' : 'none';
+  document.getElementById('order-section').style.display = val === 'ordered' ? 'block' : 'none';
   if (val === 'ordered' && itemRows.length === 0) addItemRow();
 }
 
