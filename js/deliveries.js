@@ -25,7 +25,7 @@ async function loadAll() {
     const [deliveries, products, staff, profiles, customers] = await Promise.all([
       fetchAll((from, to) => {
         let q = window._supabase.from('deliveries')
-          .select(`id,status,sale_price,delivery_fee,waybill_fee,delivery_date,created_at,notes,items,product_id,quantity,
+          .select(`id,status,sale_price,delivery_fee,waybill_fee,created_at,notes,items,product_id,quantity,
             customer_id,agent_id,logged_by,delivery_staff_id,
             customers(id,full_name,phone,state,order_date),
             products(id,name),
@@ -178,7 +178,6 @@ async function updateStatus(id, status) {
   const labels = { delivered:'Mark as Delivered', failed:'Mark as Failed', returned:'Mark as Returned' };
   if (!confirm(labels[status]+'?')) return;
   const upd = { status };
-  if (status === 'delivered') upd.delivery_date = new Date().toISOString();
   const { data, error } = await window._supabase.from('deliveries').update(upd).eq('id',id).select();
   if (error) { showToast(error.message,'error'); return; }
   if (!data||data.length===0) { showToast('Update failed — RLS may have blocked it','error'); return; }
@@ -322,7 +321,6 @@ async function saveDelivery() {
     items: validItems,
     status,
     notes: document.getElementById('d-notes').value.trim(),
-    ...(status === 'delivered' ? { delivery_date: new Date().toISOString() } : {}),
   };
   let error;
   if (id) {
