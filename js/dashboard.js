@@ -85,22 +85,30 @@ async function init() {
     const isCrs = profile?.role === 'crs_agent';
 
     // Render KPI cards
-    setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
-    setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
-
-    // Profit: admin/temp_admin only — completely hidden for supervisor & CRS
-    const profitEl = document.getElementById('kpi-profit');
-    if (['admin','temp_admin'].includes(profile?.role)) {
-      setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
+    // Cards hidden for CRS agents
+    if (isCrs) {
+      ['kpi-pipeline','kpi-revenue','kpi-profit','kpi-agents','kpi-dstaff',
+       'kpi-delfees','kpi-waybill','kpi-productcost'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
     } else {
-      if (profitEl) profitEl.style.display = 'none';
-    }
+      setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
+      setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
 
-    setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
-    setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
-    setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
-    setKpi('kpi-waybill', fmtMoney(waybill),  'Total Waybill Paid',  'Inter-state shipping out of Lagos', '📮');
-    setKpi('kpi-productcost', fmtMoney(prodCost), 'Total Product Cost', 'Cost of goods sold (delivered only)', '🏭');
+      const profitEl = document.getElementById('kpi-profit');
+      if (['admin','temp_admin'].includes(profile?.role)) {
+        setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
+      } else {
+        if (profitEl) profitEl.style.display = 'none';
+      }
+
+      setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
+      setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
+      setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
+      setKpi('kpi-waybill', fmtMoney(waybill),  'Total Waybill Paid',  'Inter-state shipping out of Lagos', '📮');
+      setKpi('kpi-productcost', fmtMoney(prodCost), 'Total Product Cost', 'Cost of goods sold (delivered only)', '🏭');
+    }
 
     // Customer Funnel
     const contactedSet = new Set(callLogs.map(c => c.customer_id));
