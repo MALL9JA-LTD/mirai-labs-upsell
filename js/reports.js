@@ -5,7 +5,9 @@ let reportData = { productRows: [], tierRows: [], agentRows: [], outcomeRows: []
   if (!profile) return;
 
   const now = new Date();
-  document.getElementById('date-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  // Default: last 3 months so existing data always shows
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth()-2, 1);
+  document.getElementById('date-from').value = threeMonthsAgo.toISOString().split('T')[0];
   document.getElementById('date-to').value = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
   document.getElementById('btn-run').addEventListener('click', runReport);
@@ -21,11 +23,13 @@ async function runReport() {
   btn.disabled=true; btn.textContent='Loading…';
 
   try {
-    const [deliveries, callLogs, customers, profiles] = await Promise.all([
-      // Fetch ALL deliveries (no date filter) — we filter by call date range below
+    const [deliveries, callLogs, customers, profiles, products, allStaff] = await Promise.all([
+      // Deliveries filtered directly by their own created_at date
       fetchAll((from, to) =>
         window._supabase.from('deliveries')
-          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id,created_at,products(id,name,cost_price),delivery_staff(id,name)')
+          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id,created_at')
+          .gte('created_at', fromDate+'T00:00:00')
+          .lte('created_at', toDate+'T23:59:59')
           .order('id').range(from, to)
       ),
       // Call logs filtered by date range
@@ -40,16 +44,18 @@ async function runReport() {
         window._supabase.from('customers').select('id,order_date').order('id').range(from, to)
       ),
       window._supabase.from('profiles').select('id,full_name,role').order('full_name'),
+      window._supabase.from('products').select('id,name,cost_price').order('name'),
+      window._supabase.from('delivery_staff').select('id,name').order('name'),
     ]);
-
-    // Build set of customers who had activity in date range
-    const activeCustomerIds = new Set(callLogs.map(c => c.customer_id));
-    // Filter deliveries to those whose customer had a call in the date range
-    const periodDeliveries = deliveries.filter(d => activeCustomerIds.has(d.customer_id));
 
     const profileMap = {};
     (profiles.data||[]).forEach(p => { profileMap[p.id] = p; });
+    const prodLookup = {};
+    (products.data||[]).forEach(p => { prodLookup[p.id] = p; });
+    const staffLookup = {};
+    (allStaff.data||[]).forEach(s => { staffLookup[s.id] = s; });
 
+    const periodDeliveries = deliveries; // already date-filtered
     const delivered = periodDeliveries.filter(d => d.status==='delivered');
     const allOrders = periodDeliveries;
     const failed = periodDeliveries.filter(d => ['failed','failed_delivery'].includes(d.status));
@@ -69,10 +75,12 @@ async function runReport() {
     delivered.forEach(d => {
       const items = Array.isArray(d.items) && d.items.length > 0 ? d.items : [{ product_id: d.product_id, qty: d.quantity||1, sale_price: d.sale_price||0 }];
       items.forEach(it => {
-        const name = d.products?.name || 'Unknown';
+        const prod = prodLookup[it.product_id] || prodLookup[d.product_id];
+        const name = prod?.name || 'Unknown';
         if (!productMap[name]) productMap[name] = { units: 0, revenue: 0 };
         productMap[name].units += Number(it.qty||1);
-        productMap[name].revenue += Number(it.sale_price||0) * Number(it.qty||1) || Number(d.sale_price||0);
+        // sale_price on item is already the line total
+        productMap[name].revenue += Number(it.sale_price||0) || Number(d.sale_price||0);
       });
     });
     const productRows = Object.entries(productMap).sort((a,b) => b[1].revenue-a[1].revenue);
@@ -124,7 +132,7 @@ async function runReport() {
 
     // Revenue by CRS Agent
     const agentRevMap = {};
-    (profiles.data||[]).filter(p => p.role==='crs_agent').forEach(p => { agentRevMap[p.id] = { name: p.full_name, calls: 0, orders: 0, revenue: 0 }; });
+    (profiles.data||[]).filter(p => ['crs_agent','temp_admin','supervisor'].includes(p.role)).forEach(p => { agentRevMap[p.id] = { name: p.full_name, calls: 0, orders: 0, revenue: 0 }; });
     callLogs.forEach(c => { if (agentRevMap[c.agent_id]) agentRevMap[c.agent_id].calls++; });
     delivered.forEach(d => { if (agentRevMap[d.agent_id]) { agentRevMap[d.agent_id].orders++; agentRevMap[d.agent_id].revenue += Number(d.sale_price||0); } });
     const agentRevRows = Object.values(agentRevMap).sort((a,b) => b.revenue-a.revenue);
@@ -162,8 +170,7 @@ async function runReport() {
     const staffPerfMap = {};
     const staffSet = new Set(periodDeliveries.map(d => d.delivery_staff_id).filter(Boolean));
     staffSet.forEach(id => {
-      const d = periodDeliveries.find(x => x.delivery_staff_id===id);
-      staffPerfMap[id] = { name: d?.delivery_staff?.name||id, delivered:0, failed:0, revenue:0 };
+      staffPerfMap[id] = { name: staffLookup[id]?.name || id, delivered:0, failed:0, revenue:0 };
     });
     delivered.forEach(d => { if (staffPerfMap[d.delivery_staff_id]) { staffPerfMap[d.delivery_staff_id].delivered++; staffPerfMap[d.delivery_staff_id].revenue+=Number(d.sale_price||0); } });
     failed.forEach(d => { if (staffPerfMap[d.delivery_staff_id]) staffPerfMap[d.delivery_staff_id].failed++; });
