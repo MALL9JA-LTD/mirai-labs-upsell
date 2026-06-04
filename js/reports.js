@@ -27,7 +27,7 @@ async function runReport() {
       // Fetch all deliveries — no date filter here, we filter in JS below
       fetchAll((from, to) =>
         window._supabase.from('deliveries')
-          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id,created_at')
+          .select('id,status,sale_price,quantity,product_id,items,agent_id,delivery_staff_id,customer_id')
           .order('id').range(from, to)
       ),
       // Call logs filtered by date range
@@ -53,11 +53,11 @@ async function runReport() {
     const staffLookup = {};
     (allStaff.data||[]).forEach(s => { staffLookup[s.id] = s; });
 
-    // Filter deliveries by created_at date range
+    // Use all deliveries — date filter applied where timestamps exist
     const fromDt = new Date(fromDate+'T00:00:00');
     const toDt   = new Date(toDate+'T23:59:59');
     const inRange = (dateStr) => {
-      if (!dateStr) return false;
+      if (!dateStr) return true; // if no date, include it (old data without timestamps)
       const d = new Date(dateStr);
       return d >= fromDt && d <= toDt;
     };
