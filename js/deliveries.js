@@ -23,19 +23,16 @@ async function loadAll() {
   document.getElementById('deliveries-body').innerHTML = '<tr><td colspan="9" class="empty-state"><em>Loading…</em></td></tr>';
   try {
     const [deliveries, products, staff, profiles, customers] = await Promise.all([
+      // No relational joins — fetch flat and do client-side lookups
       fetchAll((from, to) => {
         let q = window._supabase.from('deliveries')
-          .select(`id,status,sale_price,delivery_fee,waybill_fee,created_at,notes,items,product_id,quantity,
-            customer_id,agent_id,logged_by,delivery_staff_id,
-            customers(id,full_name,phone,state,order_date),
-            products(id,name),
-            delivery_staff(id,name)`)
+          .select('id,status,sale_price,delivery_fee,waybill_fee,created_at,notes,items,product_id,quantity,customer_id,agent_id,logged_by,delivery_staff_id')
           .order('id',{ascending:false}).range(from, to);
         if (!isAdmin) q = q.eq('agent_id', window._profile.id);
         return q;
       }),
       window._supabase.from('products').select('id,name,selling_price,cost_price').order('name'),
-      window._supabase.from('delivery_staff').select('id,name,active').order('name'),
+      window._supabase.from('delivery_staff').select('id,name,phone,active').order('name'),
       window._supabase.from('profiles').select('id,full_name,role').order('full_name'),
       fetchAll((from, to) =>
         window._supabase.from('customers').select('id,full_name,phone,state,order_date').order('full_name').range(from, to)
@@ -86,7 +83,8 @@ function getItemsDesc(d) {
       return `${p ? p.name : '?'} x${it.qty||1}`;
     }).join(', ');
   }
-  return d.products?.name ? `${d.products.name} x${d.quantity||1}` : '—';
+  const p = allProducts.find(x => x.id === d.product_id);
+  return p ? `${p.name} x${d.quantity||1}` : '—';
 }
 
 function applyFilters() {
@@ -96,9 +94,10 @@ function applyFilters() {
   const crs = document.getElementById('filter-crs').value;
 
   filteredDeliveries = allDeliveries.filter(d => {
+    const cust = allCustomers.find(c => c.id === d.customer_id);
     const matchSearch = !search ||
-      (d.customers?.full_name||'').toLowerCase().includes(search) ||
-      (d.customers?.phone||'').includes(search);
+      (cust?.full_name||'').toLowerCase().includes(search) ||
+      (cust?.phone||'').includes(search);
     const matchStatus = !status || d.status === status || (status==='failed' && ['failed','failed_delivery'].includes(d.status));
     const matchStaff = !staff || d.delivery_staff_id === staff;
     const matchCrs = !crs || d.agent_id === crs;
@@ -124,8 +123,13 @@ function renderTable() {
   const profileMap = {};
   allProfiles.forEach(p => { profileMap[p.id] = p; });
 
+  const custMap  = {};  allCustomers.forEach(c => { custMap[c.id]  = c; });
+  const staffMap = {};  allStaff.forEach(s     => { staffMap[s.id] = s; });
+
   tbody.innerHTML = pageRows.map(d => {
-    const isPending = d.status === 'pending';
+    const cust  = custMap[d.customer_id]  || {};
+    const staff = staffMap[d.delivery_staff_id] || {};
+    const isPending   = d.status === 'pending';
     const isDelivered = d.status === 'delivered';
     let actions = `<button class="btn-ghost btn-sm" onclick="openEditDelivery('${d.id}')">Edit</button>`;
     if (isPending) {
@@ -138,13 +142,13 @@ function renderTable() {
     }
     const crsName = profileMap[d.agent_id]?.full_name || profileMap[d.logged_by]?.full_name || '—';
     return `<tr>
-      <td>${fmtDate(d.delivery_date||d.created_at)}</td>
-      <td><strong>${d.customers?.full_name||'—'}</strong><br/><span style="font-size:11px;color:var(--ml-muted);">${d.customers?.phone||''}</span></td>
-      <td>${d.customers?.state||'—'}</td>
+      <td>${fmtDate(d.created_at)}</td>
+      <td><strong>${cust.full_name||'—'}</strong><br/><span style="font-size:11px;color:var(--ml-muted);">${cust.phone||''}</span></td>
+      <td>${cust.state||'—'}</td>
       <td style="max-width:180px;font-size:12px;">${getItemsDesc(d)}</td>
       <td class="cell-amount">${fmtMoney(d.sale_price)}</td>
       <td>${statusBadge(d.status)}</td>
-      <td>${d.delivery_staff?.name||'—'}</td>
+      <td>${staff.name||'—'}</td>
       <td>${crsName}</td>
       <td style="min-width:100px;display:flex;flex-direction:column;gap:2px;">${actions}</td>
     </tr>`;
