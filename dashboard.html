@@ -31,7 +31,7 @@
         </div>
 
         <!-- ROW 1: 5 KPI cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
+        <div id="kpi-row-1" class="kpi-grid" style="grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
           <div class="stat-card" id="kpi-pipeline"><div class="stat-label">Pipeline Revenue</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-revenue"><div class="stat-label">Realized Revenue</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-profit"><div class="stat-label">Profit</div><div class="stat-value">—</div></div>
@@ -40,14 +40,14 @@
         </div>
 
         <!-- ROW 2: 3 KPI cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+        <div id="kpi-row-2" class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
           <div class="stat-card" id="kpi-delfees"><div class="stat-label">Total Delivery Fees</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-waybill"><div class="stat-label">Total Waybill Paid</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-productcost"><div class="stat-label">Total Product Cost</div><div class="stat-value">—</div></div>
         </div>
 
         <!-- CUSTOMER FUNNEL -->
-        <div class="card" style="margin-bottom:20px;">
+        <div id="funnel-section" class="card" style="margin-bottom:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <span class="card-title">Customer Funnel</span>
             <span style="font-size:11px;color:var(--ml-muted);">How the campaign is progressing</span>
@@ -80,14 +80,14 @@
         </div>
 
         <!-- ROW 3: 3 KPI cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+        <div id="kpi-row-3" class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
           <div class="stat-card" id="kpi-orders"><div class="stat-label">Total Orders</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-delivered"><div class="stat-label">Delivered</div><div class="stat-value">—</div></div>
           <div class="stat-card" id="kpi-delrate"><div class="stat-label">Delivery Rate</div><div class="stat-value">—</div></div>
         </div>
 
         <!-- BOTTOM: 2 tables side by side -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div id="rev-tables-section" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
           <div class="card" style="margin-bottom:0;">
             <div class="card-header">
               <span class="card-title">Revenue by Product</span>
@@ -113,7 +113,7 @@
         </div>
 
         <!-- TOP CRS AGENTS TABLE -->
-        <div class="card" style="margin-bottom:20px;">
+        <div id="top-agents-section" class="card" style="margin-bottom:20px;">
           <div class="card-header">
             <span class="card-title">Top CRS Agents</span>
           </div>

@@ -1,7 +1,10 @@
 async function init() {
   const profile = await requireAuth();
   if (!profile) return;
-  const isAdmin = ['admin','temp_admin','supervisor'].includes(profile?.role);
+  const role = profile?.role;
+  const isAdmin     = ['admin','temp_admin','supervisor'].includes(role); // sees admin pages
+  const canSeeProfit = ['admin','temp_admin'].includes(role);             // profit hidden from supervisor
+  const isCrsOnly   = role === 'crs_agent';                              // minimal dashboard
 
   // Greeting
   const hour = new Date().getHours();
@@ -82,21 +85,36 @@ async function init() {
       return s + (Number(p?.cost_price) || 0) * (Number(d.quantity) || 1);
     }, 0);
 
-    // Render KPI cards
-    setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
-    setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
-    if (isAdmin) {
-      setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
+    // ── KPI CARDS ────────────────────────────────────────────
+    if (isCrsOnly) {
+      // CRS: hide all revenue/management sections
+      ['kpi-row-1','kpi-row-2','kpi-row-3','funnel-section','rev-tables-section','top-agents-section'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
     } else {
-      document.getElementById('kpi-profit').innerHTML = hiddenKpi('Profit (Admin Only)');
-    }
-    setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
-    setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
-    setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
-    setKpi('kpi-waybill', fmtMoney(waybill),  'Total Waybill Paid',  'Inter-state shipping out of Lagos', '📮');
-    setKpi('kpi-productcost', fmtMoney(prodCost), 'Total Product Cost', 'Cost of goods sold (delivered only)', '🏭');
+      // Admin / Temp Admin / Supervisor: show all KPIs
+      setKpi('kpi-pipeline', fmtMoney(pipeline), 'Pipeline Revenue', 'Orders placed (awaiting delivery)', '📦');
+      setKpi('kpi-revenue',  fmtMoney(revenue),  'Realized Revenue', 'Delivered & paid', '💰');
 
-    // Customer Funnel
+      // Profit: admin + temp_admin only — supervisor sees nothing here
+      const profitEl = document.getElementById('kpi-profit');
+      if (profitEl) {
+        if (canSeeProfit) {
+          setKpi('kpi-profit', fmtMoney(profit), 'Profit', 'Sale − delivery fee − waybill − cost', '📈');
+        } else {
+          profitEl.style.display = 'none'; // supervisor: completely hidden
+        }
+      }
+
+      setKpi('kpi-agents',  crsCount,    'CRS Agents',     'Active', '📞');
+      setKpi('kpi-dstaff',  dstaffCount, 'Delivery Staff', 'Active', '🚚');
+      setKpi('kpi-delfees', fmtMoney(delFees), 'Total Delivery Fees', 'All courier fees, incl. failed deliveries', '🚛');
+      setKpi('kpi-waybill', fmtMoney(waybill),  'Total Waybill Paid',  'Inter-state shipping out of Lagos', '📮');
+      setKpi('kpi-productcost', fmtMoney(prodCost), 'Total Product Cost', 'Cost of goods sold (delivered only)', '🏭');
+    }
+
+    // ── CUSTOMER FUNNEL ──────────────────────────────────────
     const contactedSet = new Set(callLogs.map(c => c.customer_id));
     const orderedSet   = new Set(deliveries.map(d => d.customer_id));
     const deliveredSet = new Set(delivered.map(d => d.customer_id));
@@ -106,33 +124,39 @@ async function init() {
     const deliveredCount  = customers.filter(c => deliveredSet.has(c.id)).length;
 
     const pct = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '0%';
-    document.getElementById('funnel-total').textContent = totalCust;
-    document.getElementById('funnel-contacted').textContent = contactedCount;
-    document.getElementById('funnel-contacted-pct').textContent = pct(contactedCount, totalCust) + ' of total';
-    document.getElementById('funnel-ordered').textContent = orderedCount;
-    document.getElementById('funnel-ordered-pct').textContent = pct(orderedCount, contactedCount) + ' of contacted';
-    document.getElementById('funnel-delivered').textContent = deliveredCount;
-    document.getElementById('funnel-delivered-pct').textContent = pct(deliveredCount, orderedCount) + ' of ordered';
+    if (!isCrsOnly) {
+      document.getElementById('funnel-total').textContent = totalCust;
+      document.getElementById('funnel-contacted').textContent = contactedCount;
+      document.getElementById('funnel-contacted-pct').textContent = pct(contactedCount, totalCust) + ' of total';
+      document.getElementById('funnel-ordered').textContent = orderedCount;
+      document.getElementById('funnel-ordered-pct').textContent = pct(orderedCount, contactedCount) + ' of contacted';
+      document.getElementById('funnel-delivered').textContent = deliveredCount;
+      document.getElementById('funnel-delivered-pct').textContent = pct(deliveredCount, orderedCount) + ' of ordered';
+    }
 
-    // Row 3 KPIs
+    // ── ROW 3 KPIs ──────────────────────────────────────────
     const allOrdersCount = deliveries.length;
     const deliveredOrdersCount = delivered.length;
-    setKpi('kpi-orders',    allOrdersCount,    'Total Orders',  'All delivery records', '🛒');
-    setKpi('kpi-delivered', deliveredOrdersCount, 'Delivered', 'Confirmed deliveries', '✅');
-    const delRate = allOrdersCount > 0 ? (deliveredOrdersCount / allOrdersCount * 100).toFixed(1) + '%' : '0%';
-    setKpi('kpi-delrate', delRate, 'Delivery Rate', 'Delivered / Ordered', '📊');
+    if (!isCrsOnly) {
+      setKpi('kpi-orders',    allOrdersCount,    'Total Orders',  'All delivery records', '🛒');
+      setKpi('kpi-delivered', deliveredOrdersCount, 'Delivered', 'Confirmed deliveries', '✅');
+      const delRate = allOrdersCount > 0 ? (deliveredOrdersCount / allOrdersCount * 100).toFixed(1) + '%' : '0%';
+      setKpi('kpi-delrate', delRate, 'Delivery Rate', 'Delivered / Ordered', '📊');
+    }
 
-    // Revenue by Product
-    renderRevenueByProduct(delivered, productMap);
-    // Revenue by Tier
-    renderRevenueByTier(delivered, customers);
-    // Top CRS Agents
-    renderTopAgents(callLogs, delivered, profiles);
-    // Recent Activity
+    // ── LOWER SECTIONS ───────────────────────────────────────
     const custMap = {};
     customers.forEach(c => { custMap[c.id] = c; });
     const profMap = {};
     profiles.forEach(p => { profMap[p.id] = p; });
+
+    if (!isCrsOnly) {
+      renderRevenueByProduct(delivered, productMap);
+      renderRevenueByTier(delivered, customers);
+      renderTopAgents(callLogs, delivered, profiles);
+    }
+
+    // Recent Activity — everyone sees this
     renderRecentActivity(callLogs, custMap, profMap);
 
   } catch (err) {
