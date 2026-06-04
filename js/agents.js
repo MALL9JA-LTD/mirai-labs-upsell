@@ -122,6 +122,7 @@ function renderTeam() {
           <button class="row-menu-item danger" onclick="removeAgent('${a.id}','${escAttr(a.full_name||'')}')">Remove permanently</button>
         `
       }
+      <button class="row-menu-item danger" onclick="openClearDataModal('${a.id}','${escAttr(a.full_name||'')}')">⚠ Clear all agent data</button>
     `;
 
     const dotsBtn = canAct ? `
@@ -173,6 +174,50 @@ async function setActive(agentId, active, triggerEl) {
   if (error) { showToast(error.message,'error'); return; }
   showToast(active ? `${a.full_name} reactivated` : `${a.full_name} deactivated`);
   await loadAll();
+}
+
+function openClearDataModal(agentId, agentName) {
+  closeAllMenus();
+  document.getElementById('clear-agent-id').value = agentId;
+  document.getElementById('clear-agent-name-stored').value = agentName;
+  document.getElementById('clear-confirm-label').textContent = agentName;
+  document.getElementById('clear-confirm-input').value = '';
+  document.getElementById('clear-data-error').textContent = '';
+  openModal('modal-clear-data');
+  setTimeout(() => document.getElementById('clear-confirm-input').focus(), 100);
+}
+
+async function clearAgentData() {
+  const agentId   = document.getElementById('clear-agent-id').value;
+  const agentName = document.getElementById('clear-agent-name-stored').value;
+  const typed     = document.getElementById('clear-confirm-input').value.trim();
+  const errEl     = document.getElementById('clear-data-error');
+  errEl.textContent = '';
+
+  if (typed !== agentName) {
+    errEl.textContent = `Name doesn't match. Type exactly: ${agentName}`;
+    return;
+  }
+
+  const btn = document.getElementById('confirm-clear-btn');
+  btn.disabled = true; btn.textContent = 'Clearing…';
+
+  try {
+    // 1. Unassign customers
+    await window._supabase.from('customers').update({ assigned_to: null }).eq('assigned_to', agentId);
+    // 2. Delete all call logs by this agent
+    await window._supabase.from('call_logs').delete().eq('agent_id', agentId);
+    // 3. Unlink deliveries (preserve records but remove agent link)
+    await window._supabase.from('deliveries').update({ agent_id: null, logged_by: null }).eq('agent_id', agentId);
+
+    showToast(`All data cleared for ${agentName}`);
+    closeModal('modal-clear-data');
+    await loadAll();
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to clear data';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Clear All Data';
+  }
 }
 
 async function removeAgent(agentId, agentName) {
@@ -397,6 +442,12 @@ function bindEvents() {
     document.getElementById('btn-add-crs').style.display = 'none';
     document.getElementById('btn-add-delivery-staff').style.display = 'none';
   }
+
+  document.getElementById('confirm-clear-btn').addEventListener('click', clearAgentData);
+  // Also allow Enter key in the confirm input
+  document.getElementById('clear-confirm-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') clearAgentData();
+  });
 
   document.getElementById('btn-add-crs').addEventListener('click', () => {
     const iAmMainAdmin = window._profile?.role === 'admin';
