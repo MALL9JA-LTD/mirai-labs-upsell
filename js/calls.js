@@ -459,7 +459,6 @@ async function submitCall() {
         customer_id: customerId, agent_id: agentId, logged_by: agentId,
         product_id: validItems[0].product_id, quantity: validItems[0].qty,
         sale_price: totalSale,
-        cost_price: firstP ? Number(firstP.cost_price || 0) * validItems[0].qty : 0,
         delivery_fee: deliveryFee, waybill_fee: waybillFee,
         delivery_staff_id: staffId, items: validItems, status: 'pending',
       };
