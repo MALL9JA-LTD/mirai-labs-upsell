@@ -205,6 +205,7 @@ function renderTable() {
         <button class="btn-outline btn-sm" onclick="openCallHistory('${c.id}','${(c.full_name||'').replace(/'/g,"\\'")}')">History</button>
         ${isAdmin ? `<button class="btn-ghost btn-sm" onclick="openAssignModal('${c.id}')">Assign</button>` : ''}
         <button class="btn-ghost btn-sm" onclick="editCustomer('${c.id}')">Edit</button>
+        ${campStatus === 'ordered_pending' ? `<button class="btn-ghost btn-sm" style="color:var(--ml-gold);border-color:var(--ml-gold-dim);" onclick="openEditFees('${c.id}','${(c.full_name||'').replace(/'/g,"\\'")}')">₦ Fees</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -292,6 +293,45 @@ async function saveCustomer() {
   showToast(id ? 'Customer updated' : 'Customer added');
   closeModal('modal-customer');
   await loadAll();
+}
+
+async function openEditFees(custId, custName) {
+  // Find this customer's pending delivery
+  const delivery = allDeliveries.find(d => d.customer_id === custId && d.status === 'pending');
+  if (!delivery) {
+    showToast('No pending delivery found for this customer.', 'error');
+    return;
+  }
+  document.getElementById('fees-delivery-id').value = delivery.id;
+  document.getElementById('fees-customer-name').textContent = `Customer: ${custName}`;
+  document.getElementById('fees-delivery-fee').value = delivery.delivery_fee || 0;
+  document.getElementById('fees-waybill-fee').value  = delivery.waybill_fee  || 0;
+  document.getElementById('fees-error').textContent  = '';
+  openModal('modal-edit-fees');
+}
+
+async function saveFees() {
+  const deliveryId  = document.getElementById('fees-delivery-id').value;
+  const delivFee    = Number(document.getElementById('fees-delivery-fee').value) || 0;
+  const waybillFee  = Number(document.getElementById('fees-waybill-fee').value) || 0;
+  const errEl       = document.getElementById('fees-error');
+  const btn         = document.getElementById('save-fees-btn');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const { data, error } = await window._supabase
+    .from('deliveries')
+    .update({ delivery_fee: delivFee, waybill_fee: waybillFee })
+    .eq('id', deliveryId)
+    .select();
+
+  btn.disabled = false; btn.textContent = 'Save Fees';
+  if (error) { errEl.textContent = error.message; return; }
+  if (!data || data.length === 0) { errEl.textContent = 'Update failed — check permissions.'; return; }
+
+  showToast('Delivery fees updated');
+  closeModal('modal-edit-fees');
+  await loadAll(); // refresh so dashboard/reports pick up new values
 }
 
 async function openCallHistory(custId, name) {
@@ -525,6 +565,7 @@ function bindEvents() {
     });
     document.getElementById('confirm-distribute-btn').addEventListener('click', autoDistribute);
     document.getElementById('confirm-assign-btn').addEventListener('click', confirmAssign);
+    document.getElementById('save-fees-btn').addEventListener('click', saveFees);
     document.getElementById('bulk-assign-btn').addEventListener('click', bulkAssign);
     document.getElementById('select-all-link').addEventListener('click', () => {
       selectAllMatching = true;

@@ -253,6 +253,33 @@
     </div>
   </div>
 
+  <!-- Edit Delivery Fees Modal -->
+  <div class="modal-overlay" id="modal-edit-fees">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Edit Delivery Fees</div>
+        <button class="modal-close" onclick="closeModal('modal-edit-fees')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="fees-delivery-id" />
+        <p id="fees-customer-name" style="font-size:13px;color:var(--ml-muted);margin-bottom:16px;"></p>
+        <div class="form-group">
+          <label>Delivery Fee (₦)</label>
+          <input type="number" id="fees-delivery-fee" min="0" value="0" />
+        </div>
+        <div class="form-group">
+          <label>Waybill Fee (₦) <span style="font-size:11px;color:var(--ml-muted);">— inter-state only</span></label>
+          <input type="number" id="fees-waybill-fee" min="0" value="0" />
+        </div>
+        <div id="fees-error" class="form-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-edit-fees')">Cancel</button>
+        <button class="btn-primary" id="save-fees-btn">Save Fees</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Auto-Distribute Modal -->
   <div class="modal-overlay" id="modal-distribute">
     <div class="modal modal-sm">
