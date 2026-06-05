@@ -1,7 +1,9 @@
 async function init() {
   const profile = await requireAuth();
   if (!profile) return;
-  const isAdmin = ['admin','temp_admin','supervisor'].includes(profile?.role);
+  const role = profile?.role;
+  const isAdmin  = ['admin','temp_admin','supervisor'].includes(role);
+  const isMainAdmin = ['admin','temp_admin'].includes(role);
 
   // Greeting
   const hour = new Date().getHours();
@@ -9,19 +11,55 @@ async function init() {
   const firstName = profile?.full_name?.split(' ')[0] || '';
   document.getElementById('dash-greeting').textContent = greet + (firstName ? ', ' + firstName : '');
 
+  // Show admin controls (date filter + clear) for admins only
+  if (isAdmin) {
+    const controls = document.getElementById('admin-dash-controls');
+    if (controls) controls.style.display = 'flex';
+
+    // Wire up date filter
+    document.getElementById('btn-dash-apply')?.addEventListener('click', () => loadDashboard(profile));
+    document.getElementById('btn-dash-reset')?.addEventListener('click', () => {
+      document.getElementById('dash-from').value = '';
+      document.getElementById('dash-to').value   = '';
+      loadDashboard(profile);
+    });
+
+    // Wire up clear all data (main admin only)
+    if (isMainAdmin) {
+      document.getElementById('btn-dash-clear-data')?.addEventListener('click', () => {
+        document.getElementById('dash-clear-error').textContent = '';
+        openModal('modal-dash-clear');
+      });
+      document.getElementById('confirm-dash-clear-btn')?.addEventListener('click', clearAllDashData);
+    } else {
+      // Supervisor sees filter but not clear button
+      const clearBtn = document.getElementById('btn-dash-clear-data');
+      if (clearBtn) clearBtn.style.display = 'none';
+    }
+  }
+
   try {
     // Fetch all data in parallel
+    // Date range filter (optional)
+    const fromDate = document.getElementById('dash-from')?.value;
+    const toDate   = document.getElementById('dash-to')?.value;
+
     const [deliveries, callLogs, customers, profiles, products, deliveryStaff] = await Promise.all([
-      fetchAll((f, t) =>
-        window._supabase.from('deliveries')
+      fetchAll((f, t) => {
+        let q = window._supabase.from('deliveries')
           .select('id,status,sale_price,delivery_fee,waybill_fee,quantity,product_id,items,agent_id,logged_by,customer_id')
-          .order('id').range(f, t)
-      ),
-      fetchAll((f, t) =>
-        window._supabase.from('call_logs')
+          .order('id').range(f, t);
+        // No date filter on deliveries (we keep all for pipeline/delivered distinction)
+        return q;
+      }),
+      fetchAll((f, t) => {
+        let q = window._supabase.from('call_logs')
           .select('id,customer_id,agent_id,outcome,call_date,channel')
-          .order('call_date', { ascending: false }).order('id', { ascending: false }).range(f, t)
-      ),
+          .order('call_date', { ascending: false }).order('id', { ascending: false }).range(f, t);
+        if (fromDate) q = q.gte('call_date', fromDate + 'T00:00:00');
+        if (toDate)   q = q.lte('call_date', toDate   + 'T23:59:59');
+        return q;
+      }),
       fetchAll((f, t) =>
         window._supabase.from('customers').select('id,order_date').order('id').range(f, t)
       ),
@@ -160,6 +198,36 @@ async function init() {
   } catch (err) {
     console.error('Dashboard error:', err);
     showToast('Failed to load dashboard data', 'error');
+  }
+}
+
+// Wrapper so date-filter Apply button can re-run
+function loadDashboard(profile) { init(); }
+
+async function clearAllDashData() {
+  const btn   = document.getElementById('confirm-dash-clear-btn');
+  const errEl = document.getElementById('dash-clear-error');
+  btn.disabled = true; btn.textContent = 'Clearing…';
+  errEl.textContent = '';
+  try {
+    // 1. Delete all call logs
+    const r1 = await window._supabase.from('call_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (r1.error) throw r1.error;
+    // 2. Delete all deliveries
+    const r2 = await window._supabase.from('deliveries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (r2.error) throw r2.error;
+    // 3. Unassign all customers
+    const r3 = await window._supabase.from('customers').update({ assigned_to: null }).neq('id', '00000000-0000-0000-0000-000000000000');
+    if (r3.error) throw r3.error;
+
+    showToast('All campaign data cleared');
+    closeModal('modal-dash-clear');
+    init(); // reload dashboard
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to clear data';
+    console.error(err);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Clear Everything';
   }
 }
 

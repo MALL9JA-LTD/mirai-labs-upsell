@@ -28,6 +28,18 @@
             <div class="page-title" id="dash-greeting">Dashboard</div>
             <div class="page-subtitle">Live overview of the CRS upsell campaign.</div>
           </div>
+          <!-- Admin controls: date filter + clear data -->
+          <div id="admin-dash-controls" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ml-muted);">
+              <span>FROM</span>
+              <input type="date" id="dash-from" style="background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:6px;padding:5px 8px;color:var(--ml-white);font-size:12px;outline:none;" />
+              <span>TO</span>
+              <input type="date" id="dash-to" style="background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:6px;padding:5px 8px;color:var(--ml-white);font-size:12px;outline:none;" />
+              <button class="btn-primary btn-sm" id="btn-dash-apply">APPLY</button>
+              <button class="btn-outline btn-sm" id="btn-dash-reset">ALL TIME</button>
+            </div>
+            <button class="btn-outline btn-sm" id="btn-dash-clear-data" style="color:var(--danger);border-color:var(--danger);">⚠ Clear All Data</button>
+          </div>
         </div>
 
         <!-- ROW 1: 5 KPI cards -->
@@ -136,6 +148,32 @@
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- Clear All Data Modal -->
+  <div class="modal-overlay" id="modal-dash-clear">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title" style="color:var(--danger);">⚠ Clear All Campaign Data</div>
+        <button class="modal-close" onclick="closeModal('modal-dash-clear')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:rgba(226,75,74,0.08);border:0.5px solid rgba(226,75,74,0.3);border-radius:8px;padding:14px;margin-bottom:16px;">
+          <p style="font-size:13px;color:var(--ml-white);margin-bottom:8px;font-weight:500;">This will permanently delete:</p>
+          <ul style="font-size:12px;color:var(--ml-muted);margin:0;padding-left:16px;line-height:2;">
+            <li>All call logs</li>
+            <li>All delivery records</li>
+            <li>All customer assignments (customers stay, become unassigned)</li>
+          </ul>
+          <p style="font-size:12px;color:var(--danger);margin-top:10px;margin-bottom:0;"><strong>This cannot be undone.</strong></p>
+        </div>
+        <div id="dash-clear-error" class="form-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-dash-clear')">Cancel</button>
+        <button class="btn-primary" id="confirm-dash-clear-btn" style="background:var(--danger);border-color:var(--danger);">Clear Everything</button>
+      </div>
     </div>
   </div>
 
