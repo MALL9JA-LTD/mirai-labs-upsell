@@ -181,10 +181,8 @@ function openClearDataModal(agentId, agentName) {
   document.getElementById('clear-agent-id').value = agentId;
   document.getElementById('clear-agent-name-stored').value = agentName;
   document.getElementById('clear-confirm-label').textContent = agentName;
-  document.getElementById('clear-confirm-input').value = '';
   document.getElementById('clear-data-error').textContent = '';
   openModal('modal-clear-data');
-  setTimeout(() => document.getElementById('clear-confirm-input').focus(), 100);
 }
 
 async function clearAgentData() {
@@ -198,17 +196,21 @@ async function clearAgentData() {
 
   try {
     // 1. Unassign customers
-    await window._supabase.from('customers').update({ assigned_to: null }).eq('assigned_to', agentId);
+    const r1 = await window._supabase.from('customers').update({ assigned_to: null }).eq('assigned_to', agentId);
+    if (r1.error) throw r1.error;
     // 2. Delete all call logs by this agent
-    await window._supabase.from('call_logs').delete().eq('agent_id', agentId);
-    // 3. Unlink deliveries (preserve records but remove agent link)
-    await window._supabase.from('deliveries').update({ agent_id: null, logged_by: null }).eq('agent_id', agentId);
+    const r2 = await window._supabase.from('call_logs').delete().eq('agent_id', agentId);
+    if (r2.error) throw r2.error;
+    // 3. Unlink deliveries (keep records, remove agent reference)
+    const r3 = await window._supabase.from('deliveries').update({ agent_id: null, logged_by: null }).eq('agent_id', agentId);
+    if (r3.error) throw r3.error;
 
     showToast(`All data cleared for ${agentName}`);
     closeModal('modal-clear-data');
     await loadAll();
   } catch (err) {
-    errEl.textContent = err.message || 'Failed to clear data';
+    errEl.textContent = err.message || 'Failed to clear data. Check permissions.';
+    console.error(err);
   } finally {
     btn.disabled = false; btn.textContent = 'Clear All Data';
   }
