@@ -378,9 +378,20 @@ async function bulkAssign() {
   if (ids.length === 0) return;
   const btn = document.getElementById('bulk-assign-btn');
   btn.disabled=true; btn.textContent='Assigning…';
-  const { error } = await window._supabase.from('customers').update({assigned_to:agentId}).in('id',ids);
+
+  // Batch in chunks of 200 to avoid URL length limits
+  const CHUNK = 200;
+  let hasError = false;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await window._supabase
+      .from('customers')
+      .update({ assigned_to: agentId })
+      .in('id', ids.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, 'error'); hasError = true; break; }
+  }
+
   btn.disabled=false; btn.textContent='Assign';
-  if (error) { showToast(error.message,'error'); return; }
+  if (hasError) return;
   showToast(`${ids.length} customers assigned`);
   selectedIds.clear(); selectAllMatching=false;
   document.getElementById('bulk-bar').classList.remove('visible');
