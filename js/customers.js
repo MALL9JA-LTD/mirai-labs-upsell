@@ -40,7 +40,7 @@ async function loadAll() {
     ),
     fetchAll((from, to) =>
       window._supabase.from('deliveries')
-        .select('id,customer_id,status,sale_price,agent_id').order('id').range(from, to)
+        .select('id,customer_id,status,sale_price,agent_id,delivery_fee,waybill_fee').order('id').range(from, to)
     ),
   ];
 
