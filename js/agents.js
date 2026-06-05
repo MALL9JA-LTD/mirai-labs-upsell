@@ -100,28 +100,33 @@ function renderTeam() {
     const isActive   = a.is_active !== false;
     const targetIsMainAdmin = a.role === 'admin';
 
-    // Who can act on this row
-    const canAct = !isMe && (iAmMainAdmin || (iAmTempAdmin && !targetIsMainAdmin));
+    // Show ⋯ for all agents except yourself
+    const canAct = !isMe;
+    // temp_admin cannot touch main admins
+    const canChangeRole = !isMe && (iAmMainAdmin || (iAmTempAdmin && !targetIsMainAdmin));
 
     const menuId = `menu-${a.id}`;
 
-    // Build role change items
-    const roleItems = ROLES
-      .filter(r => iAmMainAdmin || r.value !== 'admin') // only main admin can assign admin
-      .map(r => `<button class="row-menu-item${a.role===r.value?' active-role':''}"
-          onclick="setRole('${a.id}','${r.value}',this)" ${a.role===r.value?'disabled':''}>
-          ${a.role===r.value ? '✓ ' : ''}${r.label}
-        </button>`).join('');
+    // Role change section (only if allowed)
+    const roleSection = canChangeRole ? `
+      <div class="row-menu-section">
+        <div class="row-menu-label">Change Role</div>
+        ${ROLES
+          .filter(r => iAmMainAdmin || r.value !== 'admin')
+          .map(r => `<button class="row-menu-item${a.role===r.value?' active-role':''}"
+              onclick="setRole('${a.id}','${r.value}',this)" ${a.role===r.value?'disabled':''}>
+              ${a.role===r.value ? '✓ ' : ''}${r.label}
+            </button>`).join('')}
+      </div>` : '';
 
+    // Actions — always shown for all non-self agents
     const actionItems = `
-      ${custCount > 0 ? `<button class="row-menu-item" onclick="clearAgentCustomers('${a.id}','${escAttr(a.full_name||'')}')">Clear ${custCount} customer${custCount>1?'s':''}</button>` : ''}
+      ${custCount > 0 ? `<button class="row-menu-item" onclick="clearAgentCustomers('${a.id}','${escAttr(a.full_name||'')}')">Unassign ${custCount} customer${custCount>1?'s':''}</button>` : ''}
       ${isActive
         ? `<button class="row-menu-item danger" onclick="setActive('${a.id}',false)">Deactivate agent</button>`
-        : `
-          <button class="row-menu-item" onclick="setActive('${a.id}',true)">Reactivate agent</button>
-          <button class="row-menu-item danger" onclick="removeAgent('${a.id}','${escAttr(a.full_name||'')}')">Remove permanently</button>
-        `
+        : `<button class="row-menu-item" onclick="setActive('${a.id}',true)">Reactivate agent</button>`
       }
+      <button class="row-menu-item danger" onclick="removeAgent('${a.id}','${escAttr(a.full_name||'')}')">Remove permanently</button>
       <button class="row-menu-item danger" onclick="openClearDataModal('${a.id}','${escAttr(a.full_name||'')}')">⚠ Clear all agent data</button>
     `;
 
@@ -129,10 +134,7 @@ function renderTeam() {
       <div class="row-menu-wrap">
         <button class="dots-btn" onclick="toggleMenu(this,'${menuId}')" title="Actions">⋯</button>
         <div class="row-menu" id="${menuId}">
-          <div class="row-menu-section">
-            <div class="row-menu-label">Change Role</div>
-            ${roleItems}
-          </div>
+          ${roleSection}
           <div class="row-menu-section">${actionItems}</div>
         </div>
       </div>` : '';
