@@ -552,6 +552,7 @@ function bindEvents() {
     openModal('modal-customer');
   });
   document.getElementById('save-cust-btn').addEventListener('click', saveCustomer);
+  document.getElementById('save-fees-btn').addEventListener('click', saveFees); // available to all roles
 
   if (isAdmin) {
     document.getElementById('btn-export-csv').addEventListener('click', exportCustomersCsv);
@@ -565,7 +566,6 @@ function bindEvents() {
     });
     document.getElementById('confirm-distribute-btn').addEventListener('click', autoDistribute);
     document.getElementById('confirm-assign-btn').addEventListener('click', confirmAssign);
-    document.getElementById('save-fees-btn').addEventListener('click', saveFees);
     document.getElementById('bulk-assign-btn').addEventListener('click', bulkAssign);
     document.getElementById('select-all-link').addEventListener('click', () => {
       selectAllMatching = true;
