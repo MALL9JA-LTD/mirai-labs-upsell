@@ -37,6 +37,7 @@
           <div style="display:flex;gap:8px;" id="header-actions">
             <button class="btn-ghost btn-sm" id="btn-add-customer">+ Add Customer</button>
             <button class="btn-ghost btn-sm" id="btn-export-csv">Export CSV</button>
+            <button class="btn-ghost btn-sm" id="btn-mass-assign">Mass Assign</button>
             <button class="btn-ghost btn-sm" id="btn-auto-distribute">Auto-Distribute</button>
             <button class="btn-primary" id="btn-import-csv">Import CSV</button>
           </div>
@@ -288,13 +289,49 @@
         <button class="modal-close" onclick="closeModal('modal-distribute')">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Select agents to distribute unassigned customers evenly among.</p>
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Select agents to distribute customers evenly among.</p>
         <div id="distribute-agents-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:14px;padding-top:12px;border-top:0.5px solid var(--ml-border);">
+          <input type="checkbox" id="dist-include-assigned" /> Redistribute <strong>everyone</strong> (also reassign customers already assigned to a CRS)
+        </label>
         <div id="distribute-info" style="margin-top:12px;font-size:12px;color:var(--ml-muted);"></div>
       </div>
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-distribute')">Cancel</button>
         <button class="btn-primary" id="confirm-distribute-btn">Distribute</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mass Assign Modal -->
+  <div class="modal-overlay" id="modal-mass-assign">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Mass Assign to One CRS</div>
+        <button class="modal-close" onclick="closeModal('modal-mass-assign')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Assign customers from the current filter to a single CRS. Use the filters on the page first to narrow the pool if you want.</p>
+        <label style="font-size:12px;color:var(--ml-muted);">Assign to CRS</label>
+        <select id="mass-agent-select" style="width:100%;margin:6px 0 16px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
+          <option value="">— Select CRS —</option>
+        </select>
+        <label style="font-size:12px;color:var(--ml-muted);">How many</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="mass-count-mode" value="all" checked /> Assign <strong id="mass-all-count">all</strong> matching customers
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="mass-count-mode" value="n" /> Assign the first
+            <input type="number" id="mass-count-n" min="1" value="100" style="width:80px;padding:4px 6px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+            customers
+          </label>
+        </div>
+        <div id="mass-assign-info" style="margin-top:14px;font-size:12px;color:var(--ml-muted);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-mass-assign')">Cancel</button>
+        <button class="btn-primary" id="confirm-mass-assign-btn">Assign</button>
       </div>
     </div>
   </div>

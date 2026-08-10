@@ -89,6 +89,12 @@ function populateAgentDropdowns() {
       </label>`
     ).join('');
   }
+  // mass-assign modal: CRS agents only
+  const massSel = document.getElementById('mass-agent-select');
+  if (massSel) {
+    massSel.innerHTML = '<option value="">— Select CRS —</option>' +
+      allAgents.filter(a => a.role === 'crs_agent').map(a => `<option value="${a.id}">${a.full_name}</option>`).join('');
+  }
 }
 
 function renderCrsPerformance() {
@@ -402,15 +408,16 @@ async function autoDistribute() {
   const checkedBoxes = document.querySelectorAll('.dist-agent-chk:checked');
   const agentIds = [...checkedBoxes].map(el => el.value);
   if (agentIds.length === 0) { showToast('Select at least one agent','error'); return; }
-  const unassigned = allCustomers.filter(c => !c.assigned_to);
-  if (unassigned.length === 0) { showToast('No unassigned customers','error'); return; }
+  const includeAssigned = document.getElementById('dist-include-assigned').checked;
+  const pool = includeAssigned ? allCustomers : allCustomers.filter(c => !c.assigned_to);
+  if (pool.length === 0) { showToast(includeAssigned ? 'No customers to distribute' : 'No unassigned customers','error'); return; }
   const btn = document.getElementById('confirm-distribute-btn');
   btn.disabled=true; btn.textContent='Distributing…';
 
   // Round-robin: group customer IDs by which agent they'll go to
   const groups = {}; // agentId -> [customerId, ...]
   agentIds.forEach(id => { groups[id] = []; });
-  unassigned.forEach((c, i) => { groups[agentIds[i % agentIds.length]].push(c.id); });
+  pool.forEach((c, i) => { groups[agentIds[i % agentIds.length]].push(c.id); });
 
   // One UPDATE per agent, chunked at 500 IDs per call
   const CHUNK = 500;
@@ -429,10 +436,58 @@ async function autoDistribute() {
 
   btn.disabled=false; btn.textContent='Distribute';
   if (!hasError) {
-    showToast(`Distributed ${rows.length} customers to ${agentIds.length} agent(s)`);
+    showToast(`Distributed ${pool.length} customers to ${agentIds.length} agent(s)`);
     closeModal('modal-distribute');
     await loadAll();
   }
+}
+
+async function massAssign() {
+  const agentId = document.getElementById('mass-agent-select').value;
+  if (!agentId) { showToast('Select a CRS','error'); return; }
+  const mode = document.querySelector('input[name="mass-count-mode"]:checked')?.value || 'all';
+  let ids = filteredCustomers.map(c => c.id);
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('mass-count-n').value, 10);
+    if (!n || n < 1) { showToast('Enter how many customers','error'); return; }
+    ids = ids.slice(0, n);
+  }
+  if (ids.length === 0) { showToast('No customers match the current filter','error'); return; }
+  const btn = document.getElementById('confirm-mass-assign-btn');
+  btn.disabled=true; btn.textContent='Assigning…';
+
+  // Batch in chunks of 200 to avoid URL length limits
+  const CHUNK = 200;
+  let hasError = false;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await window._supabase
+      .from('customers')
+      .update({ assigned_to: agentId })
+      .in('id', ids.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, 'error'); hasError = true; break; }
+  }
+
+  btn.disabled=false; btn.textContent='Assign';
+  if (hasError) return;
+  showToast(`${ids.length} customers assigned`);
+  closeModal('modal-mass-assign');
+  await loadAll();
+}
+
+function updateMassAssignInfo() {
+  const total = filteredCustomers.length;
+  document.getElementById('mass-all-count').textContent = total;
+  const mode = document.querySelector('input[name="mass-count-mode"]:checked')?.value || 'all';
+  let count = total;
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('mass-count-n').value, 10) || 0;
+    count = Math.min(n, total);
+  }
+  const agentSel = document.getElementById('mass-agent-select');
+  const agentName = agentSel.options[agentSel.selectedIndex]?.text;
+  const target = agentSel.value ? ` to ${agentName}` : '';
+  document.getElementById('mass-assign-info').textContent =
+    `${count} of ${total} matching customer(s) will be assigned${target}.`;
 }
 
 function exportCustomersCsv() {
@@ -570,12 +625,33 @@ function bindEvents() {
     document.getElementById('btn-import-csv').addEventListener('click', () => openModal('modal-csv'));
     document.getElementById('csv-file').addEventListener('change', handleCsvFile);
     document.getElementById('import-csv-btn').addEventListener('click', importCsv);
+    const updateDistributeInfo = () => {
+      const includeAssigned = document.getElementById('dist-include-assigned').checked;
+      const count = includeAssigned ? allCustomers.length : allCustomers.filter(c => !c.assigned_to).length;
+      document.getElementById('distribute-info').textContent = includeAssigned
+        ? `${count} customers (everyone) will be redistributed across the selected agents.`
+        : `${count} unassigned customers will be distributed.`;
+    };
     document.getElementById('btn-auto-distribute').addEventListener('click', () => {
-      const unassigned = allCustomers.filter(c => !c.assigned_to);
-      document.getElementById('distribute-info').textContent = `${unassigned.length} unassigned customers will be distributed.`;
+      document.getElementById('dist-include-assigned').checked = false;
+      updateDistributeInfo();
       openModal('modal-distribute');
     });
+    document.getElementById('dist-include-assigned').addEventListener('change', updateDistributeInfo);
     document.getElementById('confirm-distribute-btn').addEventListener('click', autoDistribute);
+
+    // Mass Assign
+    document.getElementById('btn-mass-assign').addEventListener('click', () => {
+      document.querySelector('input[name="mass-count-mode"][value="all"]').checked = true;
+      document.getElementById('mass-agent-select').value = '';
+      updateMassAssignInfo();
+      openModal('modal-mass-assign');
+    });
+    document.getElementById('mass-agent-select').addEventListener('change', updateMassAssignInfo);
+    document.getElementById('mass-count-n').addEventListener('input', updateMassAssignInfo);
+    document.querySelectorAll('input[name="mass-count-mode"]').forEach(r =>
+      r.addEventListener('change', updateMassAssignInfo));
+    document.getElementById('confirm-mass-assign-btn').addEventListener('click', massAssign);
     document.getElementById('confirm-assign-btn').addEventListener('click', confirmAssign);
     document.getElementById('bulk-assign-btn').addEventListener('click', bulkAssign);
     document.getElementById('select-all-link').addEventListener('click', () => {
