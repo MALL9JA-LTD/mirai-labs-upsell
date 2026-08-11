@@ -1,4 +1,4 @@
-let allLeads = [], filteredLeads = [];
+let allLeads = [], filteredLeads = [], allAgents = [];
 let activeStatus = '';
 let currentPage = 1;
 const PAGE_SIZE = 50;
@@ -40,10 +40,18 @@ async function loadLeads() {
     allLeads = await fetchAll((from, to) =>
       window._supabase
         .from('upsell_leads')
-        .select('id,customer_name,phone,location,order_date,product,quantity,sales_price,delivery_date,upsell_status,upsell_notes,last_called_at,called_by,source_sheet,profiles:called_by(full_name)')
+        .select('id,customer_name,phone,location,order_date,product,quantity,sales_price,delivery_date,upsell_status,upsell_notes,last_called_at,called_by,assigned_to,source_sheet,profiles:called_by(full_name),assigned:assigned_to(full_name)')
         .order('created_at', { ascending: false })
         .range(from, to)
     );
+
+    if (isAdmin) {
+      const { data: profs } = await window._supabase
+        .from('profiles').select('id,full_name,role').eq('role', 'crs_agent').order('full_name');
+      allAgents = profs || [];
+      populateLeadAgentDropdown();
+    }
+
     applyFilters();
   } catch (err) {
     console.error(err);
@@ -56,13 +64,16 @@ async function loadLeads() {
 
 function applyFilters() {
   const search = document.getElementById('search-input').value.toLowerCase();
+  const assignment = document.getElementById('filter-assignment').value;
   filteredLeads = allLeads.filter(l => {
     const matchStatus = !activeStatus || (l.upsell_status || 'new') === activeStatus;
     const matchSearch = !search ||
       (l.customer_name || '').toLowerCase().includes(search) ||
       (l.phone || '').includes(search) ||
       (l.product || '').toLowerCase().includes(search);
-    return matchStatus && matchSearch;
+    const matchAssign = !assignment ||
+      (assignment === 'unassigned' ? !l.assigned_to : !!l.assigned_to);
+    return matchStatus && matchSearch && matchAssign;
   });
   currentPage = 1;
   renderTable();
@@ -76,7 +87,7 @@ function renderTable() {
   document.getElementById('row-count').textContent = `${filteredLeads.length} lead(s)`;
 
   if (pageRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><span class="empty-icon">★</span>No delivered leads yet. Use “Import Delivered” to add them.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><span class="empty-icon">★</span>No delivered leads yet. Use “Import Delivered” to add them.</td></tr>`;
     return;
   }
 
@@ -95,6 +106,7 @@ function renderTable() {
       <td>${fmtDate(l.order_date)}</td>
       <td>${fmtMoney(l.sales_price)}</td>
       <td>${badge}</td>
+      <td>${l.assigned?.full_name ? `<span class="badge badge-gold">${l.assigned.full_name}</span>` : '<span style="color:var(--ml-muted);">Unassigned</span>'}</td>
       <td style="font-size:12px;color:var(--ml-muted);">${lastCalled}</td>
       <td><button class="btn-primary btn-sm" onclick="openUpdateLead('${l.id}')">Log Call</button></td>
     </tr>`;
@@ -277,8 +289,62 @@ async function importLeads() {
   await loadLeads();
 }
 
+/* ---------- Mass assign ---------- */
+
+function populateLeadAgentDropdown() {
+  const sel = document.getElementById('mass-lead-agent');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select CRS —</option>' +
+    allAgents.map(a => `<option value="${a.id}">${a.full_name}</option>`).join('');
+}
+
+function updateMassLeadInfo() {
+  const total = filteredLeads.length;
+  document.getElementById('mass-lead-all-count').textContent = total;
+  const mode = document.querySelector('input[name="mass-lead-mode"]:checked')?.value || 'all';
+  let count = total;
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('mass-lead-count-n').value, 10) || 0;
+    count = Math.min(n, total);
+  }
+  const sel = document.getElementById('mass-lead-agent');
+  const target = sel.value ? ` to ${sel.options[sel.selectedIndex].text}` : '';
+  document.getElementById('mass-lead-info').textContent =
+    `${count} of ${total} matching lead(s) will be assigned${target}.`;
+}
+
+async function massAssignLeads() {
+  const agentId = document.getElementById('mass-lead-agent').value;
+  if (!agentId) { showToast('Select a CRS', 'error'); return; }
+  const mode = document.querySelector('input[name="mass-lead-mode"]:checked')?.value || 'all';
+  let ids = filteredLeads.map(l => l.id);
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('mass-lead-count-n').value, 10);
+    if (!n || n < 1) { showToast('Enter how many leads', 'error'); return; }
+    ids = ids.slice(0, n);
+  }
+  if (ids.length === 0) { showToast('No leads match the current filter', 'error'); return; }
+  const btn = document.getElementById('confirm-mass-lead-btn');
+  btn.disabled = true; btn.textContent = 'Assigning…';
+
+  const CHUNK = 200;
+  let hasError = false;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await window._supabase
+      .from('upsell_leads').update({ assigned_to: agentId }).in('id', ids.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, 'error'); hasError = true; break; }
+  }
+
+  btn.disabled = false; btn.textContent = 'Assign';
+  if (hasError) return;
+  showToast(`${ids.length} leads assigned`);
+  closeModal('modal-mass-assign-leads');
+  await loadLeads();
+}
+
 function bindEvents() {
   document.getElementById('search-input').addEventListener('input', applyFilters);
+  document.getElementById('filter-assignment').addEventListener('change', applyFilters);
   document.querySelectorAll('.tab-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
@@ -293,5 +359,17 @@ function bindEvents() {
     document.getElementById('btn-import-leads').addEventListener('click', () => openModal('modal-import-leads'));
     document.getElementById('leads-csv-file').addEventListener('change', handleLeadsCsvFile);
     document.getElementById('import-leads-btn').addEventListener('click', importLeads);
+
+    document.getElementById('btn-mass-assign-leads').addEventListener('click', () => {
+      document.querySelector('input[name="mass-lead-mode"][value="all"]').checked = true;
+      document.getElementById('mass-lead-agent').value = '';
+      updateMassLeadInfo();
+      openModal('modal-mass-assign-leads');
+    });
+    document.getElementById('mass-lead-agent').addEventListener('change', updateMassLeadInfo);
+    document.getElementById('mass-lead-count-n').addEventListener('input', updateMassLeadInfo);
+    document.querySelectorAll('input[name="mass-lead-mode"]').forEach(r =>
+      r.addEventListener('change', updateMassLeadInfo));
+    document.getElementById('confirm-mass-lead-btn').addEventListener('click', massAssignLeads);
   }
 }

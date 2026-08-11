@@ -35,6 +35,7 @@
             <div class="page-subtitle">Delivered customers pulled in for upsell — shared across all CRS. Call them and log the outcome.</div>
           </div>
           <div style="display:flex;gap:8px;" id="header-actions">
+            <button class="btn-ghost btn-sm" id="btn-mass-assign-leads">Mass Assign</button>
             <button class="btn-primary" id="btn-import-leads">Import Delivered</button>
           </div>
         </div>
@@ -54,6 +55,11 @@
           <div class="search-box">
             <input type="text" id="search-input" placeholder="Search name, phone or product…" />
           </div>
+          <select id="filter-assignment" style="padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);font-size:13px;">
+            <option value="">All assignments</option>
+            <option value="unassigned">Unassigned</option>
+            <option value="assigned">Assigned</option>
+          </select>
           <span id="row-count" style="font-size:12px;color:var(--ml-muted);align-self:center;"></span>
         </div>
 
@@ -69,12 +75,13 @@
                   <th>Order Date</th>
                   <th>Sale Price</th>
                   <th>Upsell Status</th>
+                  <th>Assigned To</th>
                   <th>Last Called</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="leads-body">
-                <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
+                <tr class="loading-row"><td colspan="10"><span class="spinner"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -131,6 +138,39 @@
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-import-leads')">Cancel</button>
         <button class="btn-primary" id="import-leads-btn" disabled>Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mass Assign Modal -->
+  <div class="modal-overlay" id="modal-mass-assign-leads">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Mass Assign Leads to a CRS</div>
+        <button class="modal-close" onclick="closeModal('modal-mass-assign-leads')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Assign leads from the current filter to one CRS. Tip: set the filter above to <strong>Unassigned</strong> first so you only hand out leads nobody has yet.</p>
+        <label style="font-size:12px;color:var(--ml-muted);">Assign to CRS</label>
+        <select id="mass-lead-agent" style="width:100%;margin:6px 0 16px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
+          <option value="">— Select CRS —</option>
+        </select>
+        <label style="font-size:12px;color:var(--ml-muted);">How many</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="mass-lead-mode" value="all" checked /> Assign <strong id="mass-lead-all-count">all</strong> matching leads
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="mass-lead-mode" value="n" /> Assign the first
+            <input type="number" id="mass-lead-count-n" min="1" value="50" style="width:80px;padding:4px 6px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+            leads
+          </label>
+        </div>
+        <div id="mass-lead-info" style="margin-top:14px;font-size:12px;color:var(--ml-muted);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-mass-assign-leads')">Cancel</button>
+        <button class="btn-primary" id="confirm-mass-lead-btn">Assign</button>
       </div>
     </div>
   </div>
