@@ -36,6 +36,7 @@
           </div>
           <div style="display:flex;gap:8px;" id="header-actions">
             <button class="btn-ghost btn-sm" id="btn-mass-assign-leads">Mass Assign</button>
+            <button class="btn-ghost btn-sm" id="btn-mass-unassign-leads" style="color:#E24B4A;border-color:rgba(226,75,74,0.4);">Mass Unassign</button>
             <button class="btn-primary" id="btn-import-leads">Import Delivered</button>
           </div>
         </div>
@@ -171,6 +172,39 @@
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal('modal-mass-assign-leads')">Cancel</button>
         <button class="btn-primary" id="confirm-mass-lead-btn">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mass Unassign Modal -->
+  <div class="modal-overlay" id="modal-mass-unassign-leads">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Mass Unassign Leads</div>
+        <button class="modal-close" onclick="closeModal('modal-mass-unassign-leads')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:14px;">Remove the CRS assignment from leads — they return to the <strong>Unassigned</strong> pool. This looks at all leads, independent of the filters above.</p>
+        <label style="font-size:12px;color:var(--ml-muted);">Unassign leads currently assigned to</label>
+        <select id="unassign-lead-agent" style="width:100%;margin:6px 0 16px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
+          <option value="">— Everyone (all assigned) —</option>
+        </select>
+        <label style="font-size:12px;color:var(--ml-muted);">How many</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="unassign-lead-mode" value="all" checked /> Unassign <strong id="unassign-lead-all-count">all</strong> matching leads
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="radio" name="unassign-lead-mode" value="n" /> Unassign the first
+            <input type="number" id="unassign-lead-count-n" min="1" value="50" style="width:80px;padding:4px 6px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+            leads
+          </label>
+        </div>
+        <div id="unassign-lead-info" style="margin-top:14px;font-size:12px;color:var(--ml-muted);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-mass-unassign-leads')">Cancel</button>
+        <button class="btn-primary" id="confirm-unassign-lead-btn" style="background:#E24B4A;border-color:#E24B4A;">Unassign</button>
       </div>
     </div>
   </div>

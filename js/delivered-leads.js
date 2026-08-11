@@ -293,9 +293,64 @@ async function importLeads() {
 
 function populateLeadAgentDropdown() {
   const sel = document.getElementById('mass-lead-agent');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— Select CRS —</option>' +
-    allAgents.map(a => `<option value="${a.id}">${a.full_name}</option>`).join('');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Select CRS —</option>' +
+      allAgents.map(a => `<option value="${a.id}">${a.full_name}</option>`).join('');
+  }
+  const usel = document.getElementById('unassign-lead-agent');
+  if (usel) {
+    usel.innerHTML = '<option value="">— Everyone (all assigned) —</option>' +
+      allAgents.map(a => `<option value="${a.id}">${a.full_name}</option>`).join('');
+  }
+}
+
+// Leads that would be affected by a mass-unassign, given the modal's CRS choice.
+function unassignTargetLeads() {
+  const crs = document.getElementById('unassign-lead-agent').value;
+  return allLeads.filter(l => l.assigned_to && (!crs || l.assigned_to === crs));
+}
+
+function updateUnassignLeadInfo() {
+  const targets = unassignTargetLeads();
+  const total = targets.length;
+  document.getElementById('unassign-lead-all-count').textContent = total;
+  const mode = document.querySelector('input[name="unassign-lead-mode"]:checked')?.value || 'all';
+  let count = total;
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('unassign-lead-count-n').value, 10) || 0;
+    count = Math.min(n, total);
+  }
+  const sel = document.getElementById('unassign-lead-agent');
+  const who = sel.value ? sel.options[sel.selectedIndex].text : 'any CRS';
+  document.getElementById('unassign-lead-info').textContent =
+    `${count} lead(s) currently assigned to ${who} will be unassigned.`;
+}
+
+async function massUnassignLeads() {
+  const mode = document.querySelector('input[name="unassign-lead-mode"]:checked')?.value || 'all';
+  let ids = unassignTargetLeads().map(l => l.id);
+  if (mode === 'n') {
+    const n = parseInt(document.getElementById('unassign-lead-count-n').value, 10);
+    if (!n || n < 1) { showToast('Enter how many leads', 'error'); return; }
+    ids = ids.slice(0, n);
+  }
+  if (ids.length === 0) { showToast('No assigned leads match that selection', 'error'); return; }
+  const btn = document.getElementById('confirm-unassign-lead-btn');
+  btn.disabled = true; btn.textContent = 'Unassigning…';
+
+  const CHUNK = 200;
+  let hasError = false;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await window._supabase
+      .from('upsell_leads').update({ assigned_to: null }).in('id', ids.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, 'error'); hasError = true; break; }
+  }
+
+  btn.disabled = false; btn.textContent = 'Unassign';
+  if (hasError) return;
+  showToast(`${ids.length} leads unassigned`);
+  closeModal('modal-mass-unassign-leads');
+  await loadLeads();
 }
 
 function updateMassLeadInfo() {
@@ -371,5 +426,17 @@ function bindEvents() {
     document.querySelectorAll('input[name="mass-lead-mode"]').forEach(r =>
       r.addEventListener('change', updateMassLeadInfo));
     document.getElementById('confirm-mass-lead-btn').addEventListener('click', massAssignLeads);
+
+    document.getElementById('btn-mass-unassign-leads').addEventListener('click', () => {
+      document.querySelector('input[name="unassign-lead-mode"][value="all"]').checked = true;
+      document.getElementById('unassign-lead-agent').value = '';
+      updateUnassignLeadInfo();
+      openModal('modal-mass-unassign-leads');
+    });
+    document.getElementById('unassign-lead-agent').addEventListener('change', updateUnassignLeadInfo);
+    document.getElementById('unassign-lead-count-n').addEventListener('input', updateUnassignLeadInfo);
+    document.querySelectorAll('input[name="unassign-lead-mode"]').forEach(r =>
+      r.addEventListener('change', updateUnassignLeadInfo));
+    document.getElementById('confirm-unassign-lead-btn').addEventListener('click', massUnassignLeads);
   }
 }
