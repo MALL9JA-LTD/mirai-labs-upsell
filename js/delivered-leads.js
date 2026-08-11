@@ -26,8 +26,13 @@ const UPSELL_STATUS_BADGE = {
   if (!profile) return;
   isAdmin = ['admin','temp_admin','supervisor'].includes(profile.role);
 
-  // Import is admin-only
-  if (!isAdmin) document.getElementById('header-actions').style.display = 'none';
+  // Admin-only controls; a CRS sees only their own assigned leads
+  if (!isAdmin) {
+    document.getElementById('header-actions').style.display = 'none';
+    document.getElementById('filter-assignment').style.display = 'none';
+    const sub = document.querySelector('.page-subtitle');
+    if (sub) sub.textContent = 'Your assigned delivered customers for upsell. Call them and log the outcome.';
+  }
 
   bindEvents();
   await loadLeads();
@@ -37,13 +42,16 @@ async function loadLeads() {
   document.getElementById('leads-body').innerHTML =
     `<tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>`;
   try {
-    allLeads = await fetchAll((from, to) =>
-      window._supabase
+    allLeads = await fetchAll((from, to) => {
+      let q = window._supabase
         .from('upsell_leads')
         .select('id,customer_name,phone,location,order_date,product,quantity,sales_price,delivery_date,upsell_status,upsell_notes,last_called_at,called_by,assigned_to,source_sheet,profiles:called_by(full_name),assigned:assigned_to(full_name)')
         .order('created_at', { ascending: false })
-        .range(from, to)
-    );
+        .range(from, to);
+      // CRS agents see only leads assigned to them; admins see everything.
+      if (!isAdmin) q = q.eq('assigned_to', window._profile.id);
+      return q;
+    });
 
     if (isAdmin) {
       const { data: profs } = await window._supabase
