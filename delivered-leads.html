@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIRAI LABS — Delivered Leads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-brand"><span class="brand-mirai">MIRAI</span> <span class="brand-labs">LABS</span></div>
+      <div class="topbar-right">
+        <span class="user-role" id="topbar-role"></span>
+        <div class="avatar" id="topbar-avatar"></div>
+        <button class="btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+    <!-- BODY -->
+    <div class="app-body">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <nav id="sidebar-nav"></nav>
+      </aside>
+      <!-- MAIN -->
+      <main class="main-content page-enter">
+
+        <div class="page-header">
+          <div>
+            <div class="page-title">Delivered Leads</div>
+            <div class="page-subtitle">Delivered customers pulled in for upsell — shared across all CRS. Call them and log the outcome.</div>
+          </div>
+          <div style="display:flex;gap:8px;" id="header-actions">
+            <button class="btn-primary" id="btn-import-leads">Import Delivered</button>
+          </div>
+        </div>
+
+        <!-- Filter Tab Pills -->
+        <div class="tab-pills">
+          <button class="tab-pill active" data-status="">All</button>
+          <button class="tab-pill" data-status="new">New</button>
+          <button class="tab-pill" data-status="called">Called</button>
+          <button class="tab-pill" data-status="interested">Interested</button>
+          <button class="tab-pill" data-status="ordered">Ordered</button>
+          <button class="tab-pill" data-status="not_interested">Not interested</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="filter-bar">
+          <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search name, phone or product…" />
+          </div>
+          <span id="row-count" style="font-size:12px;color:var(--ml-muted);align-self:center;"></span>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Location</th>
+                  <th>Product</th>
+                  <th>Order Date</th>
+                  <th>Sale Price</th>
+                  <th>Upsell Status</th>
+                  <th>Last Called</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="leads-body">
+                <tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Update Outcome Modal -->
+  <div class="modal-overlay" id="modal-update-lead">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Log Upsell Call</div>
+        <button class="modal-close" onclick="closeModal('modal-update-lead')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="update-lead-name" style="font-size:14px;color:var(--ml-white);margin-bottom:14px;"></div>
+        <input type="hidden" id="update-lead-id" />
+        <label style="font-size:12px;color:var(--ml-muted);">Outcome</label>
+        <select id="update-lead-status" style="width:100%;margin:6px 0 14px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);">
+          <option value="new">New (not called)</option>
+          <option value="called">Called — no order</option>
+          <option value="interested">Interested</option>
+          <option value="ordered">Ordered</option>
+          <option value="not_interested">Not interested</option>
+        </select>
+        <label style="font-size:12px;color:var(--ml-muted);">Notes</label>
+        <textarea id="update-lead-notes" rows="3" style="width:100%;margin-top:6px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);resize:vertical;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-update-lead')">Cancel</button>
+        <button class="btn-primary" id="save-lead-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="modal-import-leads">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title">Import Delivered Leads</div>
+        <button class="modal-close" onclick="closeModal('modal-import-leads')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--ml-muted);margin-bottom:12px;">Export a CRS sheet from Google Sheets as <strong>CSV</strong> and upload it here. Only rows where <strong>Order_Status = Delivered</strong> are imported. Duplicates (same phone) are skipped/updated automatically.</p>
+        <label style="font-size:12px;color:var(--ml-muted);">Which sheet is this? (optional label)</label>
+        <input type="text" id="import-source-sheet" placeholder="e.g. Martha — Microfiber" style="width:100%;margin:6px 0 14px;padding:8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);" />
+        <input type="file" id="leads-csv-file" accept=".csv" style="font-size:13px;color:var(--ml-white);" />
+        <div id="leads-csv-preview" style="margin-top:12px;font-size:12px;color:var(--ml-muted);"></div>
+        <div id="leads-csv-error" style="margin-top:6px;font-size:12px;color:#E24B4A;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal('modal-import-leads')">Cancel</button>
+        <button class="btn-primary" id="import-leads-btn" disabled>Import</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/delivered-leads.js"></script>
+</body>
+</html>

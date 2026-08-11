@@ -39,6 +39,7 @@ function renderSidebar(profile, session) {
     { href: '/calls',          icon: '◌', label: 'Calls',          admin: false },
     { href: '/deliveries',     icon: '▷', label: 'Deliveries',     admin: false },
     { href: '/website-orders', icon: '◈', label: 'Website Orders', admin: true  },
+    { href: '/delivered-leads', icon: '★', label: 'Delivered Leads', admin: false },
     { href: '/inventory',      icon: '▣', label: 'Inventory',      admin: true  },
     { href: '/agents',         icon: '◯', label: 'Agents',         admin: true  },
     { href: '/reports',        icon: '▨', label: 'Reports',        admin: false },
