@@ -474,6 +474,30 @@ async function massAssign() {
   await loadAll();
 }
 
+async function unassignAll() {
+  const assigned = allCustomers.filter(c => c.assigned_to);
+  if (assigned.length === 0) { showToast('No customers are currently assigned','error'); return; }
+  const btn = document.getElementById('confirm-unassign-all-btn');
+  btn.disabled=true; btn.textContent='Unassigning…';
+
+  const ids = assigned.map(c => c.id);
+  const CHUNK = 200;
+  let hasError = false;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { error } = await window._supabase
+      .from('customers')
+      .update({ assigned_to: null })
+      .in('id', ids.slice(i, i + CHUNK));
+    if (error) { showToast(error.message, 'error'); hasError = true; break; }
+  }
+
+  btn.disabled=false; btn.textContent='Unassign All';
+  if (hasError) return;
+  showToast(`${ids.length} customers unassigned`);
+  closeModal('modal-unassign-all');
+  await loadAll();
+}
+
 function updateMassAssignInfo() {
   const total = filteredCustomers.length;
   document.getElementById('mass-all-count').textContent = total;
@@ -652,6 +676,14 @@ function bindEvents() {
     document.querySelectorAll('input[name="mass-count-mode"]').forEach(r =>
       r.addEventListener('change', updateMassAssignInfo));
     document.getElementById('confirm-mass-assign-btn').addEventListener('click', massAssign);
+
+    // Unassign All
+    document.getElementById('btn-unassign-all').addEventListener('click', () => {
+      const assignedCount = allCustomers.filter(c => c.assigned_to).length;
+      document.getElementById('unassign-count').textContent = assignedCount;
+      openModal('modal-unassign-all');
+    });
+    document.getElementById('confirm-unassign-all-btn').addEventListener('click', unassignAll);
     document.getElementById('confirm-assign-btn').addEventListener('click', confirmAssign);
     document.getElementById('bulk-assign-btn').addEventListener('click', bulkAssign);
     document.getElementById('select-all-link').addEventListener('click', () => {
