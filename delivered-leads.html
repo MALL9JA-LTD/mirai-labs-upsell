@@ -41,6 +41,9 @@
           </div>
         </div>
 
+        <!-- Stats bar -->
+        <div id="leads-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
         <!-- Filter Tab Pills -->
         <div class="tab-pills">
           <button class="tab-pill active" data-status="">All</button>
@@ -74,6 +77,7 @@
                   <th>Location</th>
                   <th>Product</th>
                   <th>Order Date</th>
+                  <th>Added</th>
                   <th>Sale Price</th>
                   <th>Upsell Status</th>
                   <th>Assigned To</th>
@@ -82,7 +86,7 @@
                 </tr>
               </thead>
               <tbody id="leads-body">
-                <tr class="loading-row"><td colspan="10"><span class="spinner"></span></td></tr>
+                <tr class="loading-row"><td colspan="11"><span class="spinner"></span></td></tr>
               </tbody>
             </table>
           </div>

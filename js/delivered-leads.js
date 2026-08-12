@@ -40,12 +40,12 @@ const UPSELL_STATUS_BADGE = {
 
 async function loadLeads() {
   document.getElementById('leads-body').innerHTML =
-    `<tr class="loading-row"><td colspan="9"><span class="spinner"></span></td></tr>`;
+    `<tr class="loading-row"><td colspan="11"><span class="spinner"></span></td></tr>`;
   try {
     allLeads = await fetchAll((from, to) => {
       let q = window._supabase
         .from('upsell_leads')
-        .select('id,customer_name,phone,location,order_date,product,quantity,sales_price,delivery_date,upsell_status,upsell_notes,last_called_at,called_by,assigned_to,source_sheet,profiles:called_by(full_name),assigned:assigned_to(full_name)')
+        .select('id,customer_name,phone,location,order_date,product,quantity,sales_price,delivery_date,upsell_status,upsell_notes,last_called_at,called_by,assigned_to,source_sheet,created_at,profiles:called_by(full_name),assigned:assigned_to(full_name)')
         .order('created_at', { ascending: false })
         .range(from, to);
       // CRS agents see only leads assigned to them; admins see everything.
@@ -66,7 +66,7 @@ async function loadLeads() {
     const msg = err?.message || 'Unknown error';
     showToast('Failed to load leads: ' + msg, 'error');
     document.getElementById('leads-body').innerHTML =
-      `<tr><td colspan="9" class="empty-state" style="color:#E24B4A;">${msg}</td></tr>`;
+      `<tr><td colspan="11" class="empty-state" style="color:#E24B4A;">${msg}</td></tr>`;
   }
 }
 
@@ -84,8 +84,42 @@ function applyFilters() {
     return matchStatus && matchSearch && matchAssign;
   });
   currentPage = 1;
+  renderStats();
   renderTable();
   renderPagination();
+}
+
+// A lead counts as "just arrived" if added within this many days
+const NEW_ARRIVAL_DAYS = 7;
+function isJustArrived(l) {
+  return l.created_at && (Date.now() - new Date(l.created_at).getTime()) < NEW_ARRIVAL_DAYS * 864e5;
+}
+
+function renderStats() {
+  const el = document.getElementById('leads-stats');
+  if (!el) return;
+  const total = allLeads.length;
+  const pct = n => total ? Math.round((n / total) * 100) : 0;
+  const countOf = k => allLeads.filter(l => (l.upsell_status || 'new') === k).length;
+  const newC = countOf('new');
+  const reached = total - newC;
+  const interested = countOf('interested');
+  const ordered = countOf('ordered');
+  const justArrived = allLeads.filter(isJustArrived).length;
+
+  const tiles = [
+    ['Total leads',        total,      '',            'var(--ml-white)'],
+    ['New · not reached',  newC,       pct(newC) + '%',        'var(--ml-white)'],
+    ['Reached',            reached,    pct(reached) + '%',     'var(--ml-white)'],
+    ['Interested',         interested, pct(interested) + '%',  'var(--ml-white)'],
+    ['Ordered',            ordered,    pct(ordered) + '%',     'var(--ml-white)'],
+    [`Just arrived (≤${NEW_ARRIVAL_DAYS}d)`, justArrived, '',  'var(--ml-gold)'],
+  ];
+  el.innerHTML = tiles.map(([label, val, sub, color]) => `
+    <div style="flex:1;min-width:118px;padding:12px 14px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);border-radius:var(--radius-md);">
+      <div style="font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ml-muted);">${label}</div>
+      <div style="font-size:22px;color:${color};margin-top:4px;">${val}${sub ? ` <span style="font-size:13px;color:var(--ml-gold);">${sub}</span>` : ''}</div>
+    </div>`).join('');
 }
 
 function renderTable() {
@@ -95,7 +129,7 @@ function renderTable() {
   document.getElementById('row-count').textContent = `${filteredLeads.length} lead(s)`;
 
   if (pageRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><span class="empty-icon">★</span>No delivered leads yet. Use “Import Delivered” to add them.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><span class="empty-icon">★</span>No delivered leads yet. Use “Import Delivered” to add them.</td></tr>`;
     return;
   }
 
@@ -103,15 +137,20 @@ function renderTable() {
     const status = l.upsell_status || 'new';
     const badgeCls = UPSELL_STATUS_BADGE[status] || 'badge-neutral';
     const badge = `<span class="badge ${badgeCls}">${UPSELL_STATUS_LABELS[status] || status}</span>`;
+    const reached = status !== 'new';
     const lastCalled = l.last_called_at
       ? `${fmtDate(l.last_called_at)}${l.profiles?.full_name ? ` · ${l.profiles.full_name}` : ''}`
-      : '—';
-    return `<tr>
+      : (reached ? 'Reached' : '—');
+    const fresh = isJustArrived(l);
+    const rowStyle = fresh ? ' style="background:rgba(212,175,55,0.06);"' : '';
+    const justInChip = fresh ? ' <span class="badge badge-gold" style="font-size:9px;">JUST IN</span>' : '';
+    return `<tr${rowStyle}>
       <td><strong>${l.customer_name || '—'}</strong></td>
       <td>${l.phone || '—'}</td>
       <td>${l.location || '—'}</td>
       <td>${l.product || '—'}</td>
       <td>${fmtDate(l.order_date)}</td>
+      <td style="white-space:nowrap;">${fmtDate(l.created_at)}${justInChip}</td>
       <td>${fmtMoney(l.sales_price)}</td>
       <td>${badge}</td>
       <td>${l.assigned?.full_name ? `<span class="badge badge-gold">${l.assigned.full_name}</span>` : '<span style="color:var(--ml-muted);">Unassigned</span>'}</td>
