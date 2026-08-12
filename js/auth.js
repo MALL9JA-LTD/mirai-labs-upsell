@@ -20,6 +20,12 @@ async function requireAuth() {
     window.location.href = '/?msg=deactivated';
     return null;
   }
+  // Block accounts that have signed up but not yet been admitted by an admin
+  if (profile && profile.approved === false) {
+    await window._supabase.auth.signOut();
+    window.location.href = '/?msg=pending';
+    return null;
+  }
   window._profile = profile;
   window._session = session;
   // Expose helpers on window for use in page scripts

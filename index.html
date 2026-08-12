@@ -35,7 +35,8 @@
       </button>
     </form>
     <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--ml-muted);">
-      Access is by invitation only. Contact your administrator.
+      New here? <a href="/register" style="color:var(--ml-gold);">Create an account</a><br>
+      New accounts require administrator approval before access.
     </p>
   </div>
 
@@ -47,9 +48,12 @@
       if (session) window.location.href = '/dashboard';
     })();
 
-    // Show message if redirected back due to deactivation
-    if (new URLSearchParams(location.search).get('msg') === 'deactivated') {
+    // Show message if redirected back due to deactivation / pending approval
+    const _msg = new URLSearchParams(location.search).get('msg');
+    if (_msg === 'deactivated') {
       document.getElementById('login-error').textContent = 'Your account has been deactivated. Contact your administrator.';
+    } else if (_msg === 'pending') {
+      document.getElementById('login-error').textContent = 'Your account is awaiting administrator approval.';
     }
 
     document.getElementById('login-form').addEventListener('submit', async e => {

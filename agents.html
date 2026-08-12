@@ -80,6 +80,22 @@
 
         <!-- Team Tab -->
         <div class="tab-pane active" id="tab-team">
+
+          <!-- Pending approvals (admin + temp_admin only) -->
+          <div class="card" id="pending-card" style="display:none;margin-bottom:16px;border-color:var(--ml-gold-dim);">
+            <div style="padding:14px 16px 0;">
+              <strong style="color:var(--ml-gold-light);">Pending Approvals</strong>
+              <span id="pending-count" style="font-size:12px;color:var(--ml-muted);margin-left:8px;"></span>
+              <p style="font-size:12px;color:var(--ml-muted);margin:4px 0 0;">People who signed up and are waiting to be admitted. Approve to grant access, or reject to block them.</p>
+            </div>
+            <div class="table-wrapper" style="margin-top:10px;">
+              <table class="data-table">
+                <thead><tr><th>NAME</th><th>EMAIL</th><th>REQUESTED</th><th>ROLE ON APPROVAL</th><th>ACTIONS</th></tr></thead>
+                <tbody id="pending-body"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="card">
             <div class="table-wrapper">
               <table class="data-table">

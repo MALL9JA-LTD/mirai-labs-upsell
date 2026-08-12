@@ -56,6 +56,7 @@ async function loadAll() {
   allDeliveries = deliveries;
   allCustomers = customers;
 
+  renderPending();
   renderTeam();
   renderDeliveryStaff();
 }
@@ -79,6 +80,64 @@ const ROLES = [
   { value: 'admin',      label: 'Admin'       },
 ];
 
+function renderPending() {
+  const card = document.getElementById('pending-card');
+  const body = document.getElementById('pending-body');
+  if (!card || !body) return;
+
+  // Only admin + temp_admin may approve
+  if (!canWrite(window._profile)) { card.style.display = 'none'; return; }
+
+  const pending = allProfiles.filter(a => a.approved === false && a.is_active !== false);
+  if (pending.length === 0) { card.style.display = 'none'; return; }
+
+  card.style.display = '';
+  document.getElementById('pending-count').textContent = `${pending.length} waiting`;
+
+  const iAmMainAdmin = window._profile?.role === 'admin';
+  const roleOptions = ROLES
+    .filter(r => iAmMainAdmin || r.value !== 'admin')
+    .map(r => `<option value="${r.value}"${r.value === 'crs_agent' ? ' selected' : ''}>${r.label}</option>`)
+    .join('');
+
+  body.innerHTML = pending.map(a => `
+    <tr>
+      <td><strong>${a.full_name || '—'}</strong></td>
+      <td>${a.email || '—'}</td>
+      <td>${fmtDate(a.created_at)}</td>
+      <td>
+        <select id="prole-${a.id}" style="padding:5px 8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);font-size:12px;">
+          ${roleOptions}
+        </select>
+      </td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn-primary btn-sm" onclick="approveUser('${a.id}',this)">Approve</button>
+        <button class="btn-ghost btn-sm" style="color:#E24B4A;border-color:rgba(226,75,74,0.4);" onclick="rejectUser('${a.id}','${escAttr(a.full_name||'')}')">Reject</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function approveUser(userId, btn) {
+  const role = document.getElementById(`prole-${userId}`)?.value || 'crs_agent';
+  if (role === 'admin' && window._profile?.role !== 'admin') { showToast('Only the main Admin can grant Admin role.', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Approving…';
+  const { data, error } = await window._supabase
+    .from('profiles').update({ approved: true, role }).eq('id', userId).select();
+  if (error) { showToast(error.message, 'error'); btn.disabled = false; btn.textContent = 'Approve'; return; }
+  if (!data || data.length === 0) { showToast('Approval blocked — check permissions', 'error'); btn.disabled = false; btn.textContent = 'Approve'; return; }
+  showToast('Account approved');
+  await loadAll();
+}
+
+async function rejectUser(userId, name) {
+  if (!confirm(`Reject ${name}'s account request? They will be blocked from signing in.`)) return;
+  const { error } = await window._supabase
+    .from('profiles').update({ is_active: false }).eq('id', userId);
+  if (error) { showToast(error.message, 'error'); return; }
+  showToast('Account rejected');
+  await loadAll();
+}
+
 function renderTeam() {
   const tbody = document.getElementById('team-body');
   const myId  = window._session?.user?.id;
@@ -86,12 +145,15 @@ function renderTeam() {
   const iAmMainAdmin = myRole === 'admin';
   const iAmTempAdmin = myRole === 'temp_admin';
 
-  if (allProfiles.length === 0) {
+  // Pending (not-yet-approved) accounts live in their own section, not the team list
+  const teamProfiles = allProfiles.filter(a => a.approved !== false);
+
+  if (teamProfiles.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><em>No records found.</em></td></tr>';
     return;
   }
 
-  tbody.innerHTML = allProfiles.map(a => {
+  tbody.innerHTML = teamProfiles.map(a => {
     const custCount  = allCustomers.filter(c => c.assigned_to === a.id).length;
     const callCount  = allCallLogs.filter(c => c.agent_id === a.id).length;
     const orderCount = allDeliveries.filter(d => d.agent_id === a.id).length;
@@ -417,7 +479,7 @@ async function createCrsAgent() {
 
   if (error) { errEl.textContent=error.message; btn.disabled=false; btn.textContent='Create Account'; return; }
   if (data?.user?.id) {
-    await window._supabase.from('profiles').upsert({ id:data.user.id, email, full_name, role, is_active:true }, { onConflict:'id' });
+    await window._supabase.from('profiles').upsert({ id:data.user.id, email, full_name, role, is_active:true, approved:true }, { onConflict:'id' });
   }
   showToast(`Account created for ${full_name}`);
   closeModal('modal-add-crs');

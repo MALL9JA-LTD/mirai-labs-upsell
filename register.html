@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MIRAI LABS — Access Restricted</title>
+  <title>MIRAI LABS — Create Account</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -11,20 +11,88 @@
 </head>
 <body class="login-page">
 
-  <div class="login-card" style="text-align:center;">
+  <div class="login-card">
     <div class="login-brand">
       <div class="brand-name"><span style="color:var(--ml-white)">MIRAI</span> <span class="brand-labs">LABS</span></div>
       <div class="brand-tagline">Upsell Tracker</div>
     </div>
 
-    <div style="font-size:36px;margin:20px 0;color:var(--ml-gold);">⊘</div>
-    <div class="login-title" style="margin-bottom:10px;">Invitation Only</div>
-    <p style="font-size:13px;color:var(--ml-muted);line-height:1.7;margin-bottom:24px;">
-      Access to MIRAI LABS Upsell Tracker is restricted.<br>
-      Please contact your administrator to receive an invitation.
+    <div class="login-title">Create your account</div>
+
+    <form id="register-form">
+      <div class="form-group">
+        <label for="full_name">Full name</label>
+        <input class="form-input" type="text" id="full_name" placeholder="Jane Doe" required autocomplete="name" />
+      </div>
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input class="form-input" type="email" id="email" placeholder="you@mirailabs.com" required autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input class="form-input" type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password" />
+      </div>
+      <div id="register-error" class="form-error" style="margin-bottom:10px;"></div>
+      <button type="submit" class="btn-primary" id="register-btn" style="width:100%;justify-content:center;">
+        CREATE ACCOUNT
+      </button>
+    </form>
+
+    <div id="register-success" style="display:none;text-align:center;margin-top:8px;">
+      <div style="font-size:32px;color:var(--ml-gold);margin:10px 0;">✓</div>
+      <div class="login-title" style="margin-bottom:8px;">Account created</div>
+      <p style="font-size:13px;color:var(--ml-muted);line-height:1.7;">
+        If you're asked to confirm your email, please do so.<br>
+        An administrator will review and admit your account. You'll be able to sign in once approved.
+      </p>
+      <a href="/" class="btn-primary" style="display:inline-flex;justify-content:center;margin-top:12px;">← Back to Sign In</a>
+    </div>
+
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--ml-muted);">
+      Already have an account? <a href="/" style="color:var(--ml-gold);">Sign in</a>
     </p>
-    <a href="/" class="btn-primary" style="display:inline-flex;justify-content:center;">← Back to Sign In</a>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script>
+    (async () => {
+      const { data: { session } } = await window._supabase.auth.getSession();
+      if (session) window.location.href = '/dashboard';
+    })();
+
+    document.getElementById('register-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('register-btn');
+      const errEl = document.getElementById('register-error');
+      errEl.textContent = '';
+
+      const full_name = document.getElementById('full_name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!full_name) { errEl.textContent = 'Please enter your full name.'; return; }
+      if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+
+      // Sign up as a pending CRS agent — the DB trigger creates the pending profile.
+      const { error } = await window._supabase.auth.signUp({
+        email, password, options: { data: { full_name, role: 'crs_agent' } }
+      });
+
+      if (error) {
+        errEl.textContent = error.message || 'Could not create account. Please try again.';
+        btn.disabled = false;
+        btn.textContent = 'CREATE ACCOUNT';
+        return;
+      }
+
+      // Make sure no half-session lets a pending user into the app
+      await window._supabase.auth.signOut();
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('register-success').style.display = 'block';
+    });
+  </script>
 </body>
 </html>
