@@ -64,8 +64,18 @@
             <option value="unassigned">Unassigned</option>
             <option value="assigned">Assigned</option>
           </select>
+          <label style="font-size:12px;color:var(--ml-muted);display:flex;align-items:center;gap:6px;">Joined
+            <input type="date" id="filter-date-from" style="padding:6px 8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);font-size:12px;color-scheme:dark;" />
+            <span>–</span>
+            <input type="date" id="filter-date-to" style="padding:6px 8px;background:var(--ml-surface3);border:0.5px solid var(--ml-border);color:var(--ml-white);border-radius:var(--radius-sm);font-size:12px;color-scheme:dark;" />
+          </label>
+          <button class="btn-ghost btn-sm" id="clear-date-filter">Clear dates</button>
+          <button class="btn-ghost btn-sm" id="toggle-byday">📅 By day</button>
           <span id="row-count" style="font-size:12px;color:var(--ml-muted);align-self:center;"></span>
         </div>
+
+        <!-- Joined-by-day breakdown (toggled) -->
+        <div id="leads-byday" class="card" style="display:none;padding:14px;margin-bottom:16px;"></div>
 
         <div class="card">
           <div class="table-wrapper">

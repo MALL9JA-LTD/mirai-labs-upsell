@@ -73,6 +73,8 @@ async function loadLeads() {
 function applyFilters() {
   const search = document.getElementById('search-input').value.toLowerCase();
   const assignment = document.getElementById('filter-assignment').value;
+  const dateFrom = document.getElementById('filter-date-from').value; // YYYY-MM-DD or ''
+  const dateTo = document.getElementById('filter-date-to').value;
   filteredLeads = allLeads.filter(l => {
     const matchStatus = !activeStatus || (l.upsell_status || 'new') === activeStatus;
     const matchSearch = !search ||
@@ -81,18 +83,33 @@ function applyFilters() {
       (l.product || '').toLowerCase().includes(search);
     const matchAssign = !assignment ||
       (assignment === 'unassigned' ? !l.assigned_to : !!l.assigned_to);
-    return matchStatus && matchSearch && matchAssign;
+    let matchDate = true;
+    if (dateFrom || dateTo) {
+      const jd = joinedDateStr(l);
+      matchDate = !!jd && (!dateFrom || jd >= dateFrom) && (!dateTo || jd <= dateTo);
+    }
+    return matchStatus && matchSearch && matchAssign && matchDate;
   });
   currentPage = 1;
   renderStats();
+  renderByDay();
   renderTable();
   renderPagination();
 }
 
 // A lead counts as "just arrived" if added within this many days
-const NEW_ARRIVAL_DAYS = 7;
+const NEW_ARRIVAL_DAYS = 2;
 function isJustArrived(l) {
   return l.created_at && (Date.now() - new Date(l.created_at).getTime()) < NEW_ARRIVAL_DAYS * 864e5;
+}
+
+// Local calendar date (YYYY-MM-DD) a lead joined the system
+function joinedDateStr(l) {
+  if (!l.created_at) return null;
+  const d = new Date(l.created_at);
+  if (isNaN(d)) return null;
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function renderStats() {
@@ -120,6 +137,39 @@ function renderStats() {
       <div style="font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ml-muted);">${label}</div>
       <div style="font-size:22px;color:${color};margin-top:4px;">${val}${sub ? ` <span style="font-size:13px;color:var(--ml-gold);">${sub}</span>` : ''}</div>
     </div>`).join('');
+}
+
+function renderByDay() {
+  const el = document.getElementById('leads-byday');
+  if (!el || el.style.display === 'none') return;
+  // Count leads per join-date across the current filter
+  const counts = {};
+  filteredLeads.forEach(l => {
+    const d = joinedDateStr(l);
+    if (d) counts[d] = (counts[d] || 0) + 1;
+  });
+  const days = Object.keys(counts).sort((a, b) => b.localeCompare(a)); // newest first
+  const totalDated = days.reduce((s, d) => s + counts[d], 0);
+
+  if (days.length === 0) {
+    el.innerHTML = '<div style="color:var(--ml-muted);font-size:13px;">No dated leads in the current view.</div>';
+    return;
+  }
+  const header = `<div style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ml-muted);margin-bottom:10px;">Leads joined by day · ${totalDated} total across ${days.length} day(s)</div>`;
+  const tiles = days.map(d => {
+    const label = new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    return `<button class="btn-ghost btn-sm" style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:78px;padding:8px 10px;" onclick="filterToDay('${d}')" title="Show only ${label}">
+      <span style="font-size:11px;color:var(--ml-muted);">${label}</span>
+      <span style="font-size:18px;color:var(--ml-white);">${counts[d]}</span>
+    </button>`;
+  }).join('');
+  el.innerHTML = header + `<div style="display:flex;gap:8px;flex-wrap:wrap;max-height:220px;overflow:auto;">${tiles}</div>`;
+}
+
+function filterToDay(d) {
+  document.getElementById('filter-date-from').value = d;
+  document.getElementById('filter-date-to').value = d;
+  applyFilters();
 }
 
 function renderTable() {
@@ -447,6 +497,18 @@ async function massAssignLeads() {
 function bindEvents() {
   document.getElementById('search-input').addEventListener('input', applyFilters);
   document.getElementById('filter-assignment').addEventListener('change', applyFilters);
+  document.getElementById('filter-date-from').addEventListener('change', applyFilters);
+  document.getElementById('filter-date-to').addEventListener('change', applyFilters);
+  document.getElementById('clear-date-filter').addEventListener('click', () => {
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    applyFilters();
+  });
+  document.getElementById('toggle-byday').addEventListener('click', () => {
+    const el = document.getElementById('leads-byday');
+    el.style.display = el.style.display === 'none' ? '' : 'none';
+    renderByDay();
+  });
   document.querySelectorAll('.tab-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-pill').forEach(b => b.classList.remove('active'));
