@@ -88,11 +88,16 @@ function renderPending() {
   // Only admin + temp_admin may approve
   if (!canWrite(window._profile)) { card.style.display = 'none'; return; }
 
-  const pending = allProfiles.filter(a => a.approved === false && a.is_active !== false);
-  if (pending.length === 0) { card.style.display = 'none'; return; }
-
+  // Always visible to approvers so it's discoverable, even when empty
   card.style.display = '';
-  document.getElementById('pending-count').textContent = `${pending.length} waiting`;
+  const pending = allProfiles.filter(a => a.approved === false && a.is_active !== false);
+  const countEl = document.getElementById('pending-count');
+  if (pending.length === 0) {
+    countEl.textContent = 'none waiting';
+    body.innerHTML = '<tr><td colspan="5" class="empty-state"><em>No accounts waiting for approval right now.</em></td></tr>';
+    return;
+  }
+  countEl.textContent = `${pending.length} waiting`;
 
   const iAmMainAdmin = window._profile?.role === 'admin';
   const roleOptions = ROLES
